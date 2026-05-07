@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Languages, Briefcase, ChevronRight, User } from 'lucide-react';
+import { Star, Languages, Briefcase, ChevronRight, User, ShieldCheck } from 'lucide-react';
 import type { Worker } from '../types';
 import { useLanguage } from '../LanguageContext';
 import { BLUE, ORANGE } from '../constants';
@@ -53,7 +53,6 @@ export function WorkersList({ workers, onWorkerClick }: Props) {
         {/* Rows */}
         {workers.map((worker, idx) => {
           const isLast = idx === workers.length - 1;
-
           return (
             <div
               key={worker.id}
@@ -71,19 +70,24 @@ export function WorkersList({ workers, onWorkerClick }: Props) {
               onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
             >
               {/* ID */}
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#94A3B8', fontMono: 'true' }}>
-                {worker.id}
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#94A3B8' }}>
+                #{worker.id}
               </div>
 
               {/* Name */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: 12,
-                  background: '#EFF6FF', color: '#2563EB',
+                  background: BLUE, color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 14, fontWeight: 700, border: '1px solid #DBEAFE'
+                  fontSize: 14, fontWeight: 700, position: 'relative'
                 }}>
                   {worker.name[0]}
+                  {worker.isSupervisor && (
+                    <div title="Supervisor" style={{ position: 'absolute', bottom: -4, right: -4, background: '#16A34A', borderRadius: '50%', border: '2px solid #fff', padding: 2 }}>
+                      <ShieldCheck size={10} color="#fff" />
+                    </div>
+                  )}
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#1E293B' }}>{worker.name}</div>
               </div>
@@ -93,7 +97,8 @@ export function WorkersList({ workers, onWorkerClick }: Props) {
                 {worker.skills.map(s => (
                   <span key={s} style={{
                     fontSize: 10, fontWeight: 700, color: '#475569',
-                    background: '#F1F5F9', padding: '3px 8px', borderRadius: 6
+                    background: '#F1F5F9', padding: '3px 8px', borderRadius: 6,
+                    textTransform: 'capitalize'
                   }}>{s}</span>
                 ))}
               </div>
@@ -102,8 +107,8 @@ export function WorkersList({ workers, onWorkerClick }: Props) {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {worker.languages.map(l => (
                   <span key={l} style={{
-                    fontSize: 10, fontWeight: 700, color: '#9A3412',
-                    background: '#FFF7ED', padding: '3px 8px', borderRadius: 6
+                    fontSize: 10, fontWeight: 700, color: BLUE,
+                    background: '#EFF6FF', padding: '3px 8px', borderRadius: 6
                   }}>{l}</span>
                 ))}
               </div>
@@ -126,12 +131,13 @@ export function WorkersList({ workers, onWorkerClick }: Props) {
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '5px 12px', borderRadius: 10,
-                  background: worker.baseAvailable ? '#F0FDF4' : '#FEF2F2',
-                  color: worker.baseAvailable ? '#16A34A' : '#DC2626',
-                  fontSize: 11, fontWeight: 700, border: `1px solid ${worker.baseAvailable ? '#DCFCE7' : '#FEE2E2'}`
+                  background: !worker.baseAvailable ? '#FEF2F2' : !worker.available ? '#FFF7ED' : '#F0FDF4',
+                  color: !worker.baseAvailable ? '#DC2626' : !worker.available ? '#C2410C' : '#16A34A',
+                  fontSize: 11, fontWeight: 800, border: '1px solid currentColor',
+                  textTransform: 'uppercase'
                 }}>
                   <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />
-                  {worker.baseAvailable ? t('active') : t('inactive')}
+                  {!worker.baseAvailable ? 'Not Available' : !worker.available ? 'Busy' : 'Available'}
                 </div>
               </div>
 

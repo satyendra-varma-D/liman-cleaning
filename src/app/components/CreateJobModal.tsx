@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Sparkles, CheckCircle2 } from 'lucide-react';
 import type { Job, JobType } from '../types';
 import { useLanguage } from '../LanguageContext';
 import { BLUE, ORANGE } from '../constants';
@@ -34,6 +34,26 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: '0.08em',
 };
 
+function Toggle({ active, onToggle }: { active: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      style={{
+        width: 40, height: 22, borderRadius: 20,
+        background: active ? '#16A34A' : '#CBD5E1',
+        border: 'none', position: 'relative', cursor: 'pointer', transition: 'all 0.3s'
+      }}
+    >
+      <div style={{
+        width: 16, height: 16, borderRadius: '50%', background: '#fff',
+        position: 'absolute', top: 3, left: active ? 21 : 3,
+        transition: 'all 0.3s'
+      }} />
+    </button>
+  );
+}
+
 export function CreateJobModal({ job, defaultDate, onSave, onClose }: Props) {
   const { t } = useLanguage();
   const [client, setClient]           = useState(job?.client ?? '');
@@ -43,6 +63,16 @@ export function CreateJobModal({ job, defaultDate, onSave, onClose }: Props) {
   const [workersNeeded, setWorkers]   = useState(job?.workersNeeded ?? 2);
   const [type, setType]               = useState<JobType>(job?.type ?? 'general');
   const [notes, setNotes]             = useState(job?.notes ?? '');
+  const [requiredSkills, setRequiredSkills] = useState<string[]>(job?.requiredSkills ?? [job?.type ?? 'general']);
+  const [needsGermanSpeaker, setNeedsGermanSpeaker] = useState(job?.needsGermanSpeaker ?? false);
+  const [isWeatherDependent, setIsWeatherDependent] = useState(job?.isWeatherDependent ?? false);
+
+  useEffect(() => {
+    if (!job && type) {
+      setRequiredSkills([type]);
+      if (type === 'snow' || type === 'window') setIsWeatherDependent(true);
+    }
+  }, [type, job]);
 
   const isEdit = !!job;
 
@@ -50,8 +80,43 @@ export function CreateJobModal({ job, defaultDate, onSave, onClose }: Props) {
     { value: 'window',  label: t('windowCleaning'),    icon: '🪟' },
     { value: 'special', label: t('specialCleaning'),      icon: '⭐' },
     { value: 'snow',    label: t('snowRemoval'),        icon: '❄️' },
+    { value: 'grass',   label: 'Grass Cutting',        icon: '🌱' },
+    { value: 'machine', label: 'Machine Cleaning',     icon: '⚙️' },
     { value: 'general', label: t('generalCleaning'), icon: '🧹' },
   ];
+
+  const allSkills = ['window', 'special', 'snow', 'grass', 'machine', 'general'];
+
+  const toggleSkill = (skill: string) => {
+    setRequiredSkills(prev => 
+      prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]
+    );
+  };
+
+  const handleSuggestFromPast = () => {
+    // Mocking a lookup for the client
+    const c = client.toLowerCase();
+    if (c.includes('bank')) {
+      setRequiredSkills(['window', 'general']);
+      setNeedsGermanSpeaker(true);
+      setNotes('High security - ID required at entrance.');
+      setWorkers(3);
+    } else if (c.includes('hotel')) {
+      setRequiredSkills(['special', 'general']);
+      setNeedsGermanSpeaker(true);
+      setWorkers(4);
+      setNotes('Start with lobby, then move to conference rooms.');
+    } else if (c.includes('residential')) {
+      setType('general');
+      setWorkers(2);
+      setRequiredSkills(['general']);
+      setNotes('Contact building manager on arrival.');
+    } else if (c.includes('hospital')) {
+      setRequiredSkills(['special', 'machine']);
+      setNeedsGermanSpeaker(true);
+      setWorkers(5);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +132,9 @@ export function CreateJobModal({ job, defaultDate, onSave, onClose }: Props) {
       type,
       status: job?.status ?? 'scheduled',
       notes: notes.trim(),
+      requiredSkills,
+      needsGermanSpeaker,
+      isWeatherDependent,
     });
   };
 
@@ -114,8 +182,6 @@ export function CreateJobModal({ job, defaultDate, onSave, onClose }: Props) {
               cursor: 'pointer', display: 'flex', alignItems: 'center',
               transition: 'all 0.2s',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.25)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.15)')}
           >
             <X size={20} strokeWidth={3} />
           </button>
@@ -126,7 +192,18 @@ export function CreateJobModal({ job, defaultDate, onSave, onClose }: Props) {
           <div style={{ display: 'grid', gap: 24 }}>
             {/* Client */}
             <div>
-              <label style={labelStyle}>{t('client')} *</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={labelStyle}>{t('client')} *</label>
+                {!isEdit && client.length > 3 && (
+                  <button 
+                    type="button"
+                    onClick={handleSuggestFromPast}
+                    style={{ background: 'none', border: 'none', color: BLUE, fontSize: 11, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <Sparkles size={12} /> Suggest from past jobs
+                  </button>
+                )}
+              </div>
               <input
                 style={inputStyle}
                 value={client}
@@ -183,6 +260,57 @@ export function CreateJobModal({ job, defaultDate, onSave, onClose }: Props) {
                     <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* Skills Requirement */}
+            <div>
+              <label style={labelStyle}>Required Skills</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {allSkills.map(skill => (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => toggleSkill(skill)}
+                    style={{
+                      padding: '8px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700,
+                      border: '1.5px solid',
+                      borderColor: requiredSkills.includes(skill) ? BLUE : '#E2E8F0',
+                      background: requiredSkills.includes(skill) ? '#EFF6FF' : '#fff',
+                      color: requiredSkills.includes(skill) ? BLUE : '#64748B',
+                      cursor: 'pointer', transition: 'all 0.2s',
+                      display: 'flex', alignItems: 'center', gap: 6
+                    }}
+                  >
+                    {requiredSkills.includes(skill) && <CheckCircle2 size={14} />}
+                    {skill.charAt(0).toUpperCase() + skill.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Language & Weather Requirement */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ 
+                background: '#F8FAFD', padding: 16, borderRadius: 12, border: '1px solid #E2E8F0',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#1E293B' }}>German?</div>
+                  <div style={{ fontSize: 10, color: '#64748B', fontWeight: 600 }}>Needs DE speaker</div>
+                </div>
+                <Toggle active={needsGermanSpeaker} onToggle={() => setNeedsGermanSpeaker(!needsGermanSpeaker)} />
+              </div>
+
+              <div style={{ 
+                background: '#F8FAFD', padding: 16, borderRadius: 12, border: '1px solid #E2E8F0',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#1E293B' }}>Weather?</div>
+                  <div style={{ fontSize: 10, color: '#64748B', fontWeight: 600 }}>Cancel if rain/snow</div>
+                </div>
+                <Toggle active={isWeatherDependent} onToggle={() => setIsWeatherDependent(!isWeatherDependent)} />
               </div>
             </div>
 

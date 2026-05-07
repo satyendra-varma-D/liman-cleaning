@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -9,26 +8,30 @@ import {
   LogOut,
   ChevronRight,
   ShieldCheck,
-  Languages
+  Languages,
+  Truck
 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
+import { UserRole } from '../types';
 
 interface SidebarProps {
   onLogout: () => void;
   activeModule: string;
   onModuleChange: (module: string) => void;
+  userRole: UserRole;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModuleChange }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModuleChange, userRole }) => {
   const { language, setLanguage, t } = useLanguage();
 
   const menuItems = [
-    { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard },
-    { id: 'jobs', label: t('jobs'), icon: Briefcase },
-    { id: 'workers', label: t('workers'), icon: Users },
-    { id: 'schedule', label: t('schedule'), icon: Calendar },
-    { id: 'reports', label: t('reports'), icon: BarChart3 },
-  ];
+    { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard, roles: ['admin', 'secretary', 'supervisor'] },
+    { id: 'jobs', label: t('jobs'), icon: Briefcase, roles: ['admin', 'secretary'] },
+    { id: 'workers', label: t('workers'), icon: Users, roles: ['admin', 'secretary', 'supervisor'] },
+    { id: 'vehicles', label: 'Vehicles', icon: Truck, roles: ['admin', 'secretary', 'supervisor'] },
+    { id: 'schedule', label: t('schedule'), icon: Calendar, roles: ['admin', 'secretary', 'supervisor'] },
+    { id: 'reports', label: t('reports'), icon: BarChart3, roles: ['admin'] },
+  ].filter(item => item.roles.includes(userRole));
   return (
     <aside className="w-64 h-screen bg-white text-slate-500 flex flex-col fixed left-0 top-0 z-50 shadow-[10px_0_40px_rgba(0,0,0,0.02)] border-r border-slate-50">
       <div className="p-8 flex items-center gap-4">
@@ -67,21 +70,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
       </nav>
 
       <div className="p-6 mt-auto space-y-5">
-        <div className="bg-orange-50/40 rounded-[24px] p-5 border border-orange-100/50">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="p-1.5 bg-white rounded-lg shadow-sm">
-              <ShieldCheck className="w-3.5 h-3.5 text-orange-400" />
+        {userRole === 'admin' ? (
+          <div className="bg-orange-50/40 rounded-[24px] p-5 border border-orange-100/50">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                <ShieldCheck className="w-3.5 h-3.5 text-orange-400" />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-orange-400">Admin</span>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-orange-400">Admin</span>
+            <button 
+              onClick={() => onModuleChange('settings')}
+              className="flex items-center gap-3 w-full text-slate-500 hover:text-orange-500 transition-colors"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="text-sm font-semibold tracking-tight">{t('systemSettings')}</span>
+            </button>
           </div>
-          <button 
-            onClick={() => onModuleChange('settings')}
-            className="flex items-center gap-3 w-full text-slate-500 hover:text-orange-500 transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            <span className="text-sm font-semibold tracking-tight">{t('systemSettings')}</span>
-          </button>
-        </div>
+        ) : (
+          <div className="bg-slate-50 rounded-[24px] p-5 border border-slate-100">
+            <div className="flex items-center gap-2 mb-0">
+              <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">
+                {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
           <Languages className="w-4 h-4 text-slate-400" />

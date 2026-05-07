@@ -1,5 +1,13 @@
-export type JobType = 'window' | 'special' | 'snow' | 'general';
+export type JobType = 'window' | 'special' | 'snow' | 'grass' | 'machine' | 'general';
 export type JobStatus = 'scheduled' | 'in-progress' | 'completed' | 'pending';
+
+export interface Vehicle {
+  id: string;
+  name: string;
+  type: string;
+  licensePlate: string;
+  status: 'available' | 'assigned' | 'maintenance';
+}
 
 export interface Worker {
   id: string;
@@ -7,8 +15,10 @@ export interface Worker {
   baseAvailable: boolean;
   available: boolean;
   skills: string[];
-  languages: string[];
-  reliability: number;
+  languages: string[]; // 'DE', 'EN', etc.
+  isSupervisor: boolean;
+  reliability: number; // 1-5
+  pastCustomers: string[]; // IDs or names of customers they worked for
 }
 
 export interface Job {
@@ -19,7 +29,13 @@ export interface Job {
   time: string;
   workersNeeded: number;
   assignedWorkers: string[];
+  assignedVehicleId?: string;
   type: JobType;
   status: JobStatus;
+  requiredSkills: string[];
+  needsGermanSpeaker: boolean;
+  isWeatherDependent: boolean;
   notes: string;
 }
+
+export type UserRole = 'admin' | 'secretary' | 'supervisor';

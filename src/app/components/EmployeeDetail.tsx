@@ -15,9 +15,9 @@ export function EmployeeDetail({ worker, assignedJobs, onBack, onJobClick }: Pro
   const { t } = useLanguage();
 
   return (
-    <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', padding: '24px 40px' }}>
+    <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', padding: '16px 24px' }}>
       {/* Navigation Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <button
             onClick={onBack}
@@ -62,21 +62,29 @@ export function EmployeeDetail({ worker, assignedJobs, onBack, onJobClick }: Pro
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: 32, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 24, alignItems: 'start' }}>
         {/* Left Column: Profile Card */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div style={{ 
-            background: '#fff', borderRadius: 24, padding: 32, border: '1px solid #F1F5F9',
+            background: '#fff', borderRadius: 24, padding: 24, border: '1px solid #F1F5F9',
             boxShadow: '0 20px 50px rgba(0,0,0,0.02)', textAlign: 'center'
           }}>
             <div style={{ 
-              width: 100, height: 100, borderRadius: 32, background: '#EFF6FF', color: BLUE,
+              width: 100, height: 100, borderRadius: 32, background: BLUE, color: '#fff',
               margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 36, fontWeight: 700, border: '2px solid #DBEAFE'
+              fontSize: 36, fontWeight: 700, position: 'relative'
             }}>
               {worker.name[0]}
+              {worker.isSupervisor && (
+                <div title="Supervisor" style={{ position: 'absolute', bottom: -10, right: -10, background: '#16A34A', borderRadius: '50%', border: '4px solid #fff', padding: 4 }}>
+                  <Star size={16} color="#fff" fill="#fff" />
+                </div>
+              )}
             </div>
             <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>{worker.name}</h2>
+            {worker.isSupervisor && (
+               <div style={{ fontSize: 12, fontWeight: 800, color: '#16A34A', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Supervisor</div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginBottom: 24 }}>
               {[1, 2, 3, 4, 5].map(i => (
                 <Star key={i} size={16} fill={i <= worker.reliability ? '#F59E0B' : 'transparent'} color={i <= worker.reliability ? '#F59E0B' : '#E2E8F0'} strokeWidth={i <= worker.reliability ? 0 : 2} />
@@ -92,13 +100,19 @@ export function EmployeeDetail({ worker, assignedJobs, onBack, onJobClick }: Pro
           </div>
 
           <div style={{ 
-            background: '#fff', borderRadius: 24, padding: 32, border: '1px solid #F1F5F9',
+            background: '#fff', borderRadius: 24, padding: 24, border: '1px solid #F1F5F9',
             boxShadow: '0 20px 50px rgba(0,0,0,0.02)'
           }}>
              <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, color: '#1E293B' }}>{t('qualifications')}</h3>
              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
                 {worker.skills.map(s => (
                    <span key={s} style={{ background: '#F1F5F9', color: '#475569', padding: '6px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{s}</span>
+                ))}
+             </div>
+             <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, color: '#1E293B' }}>Client History</h3>
+             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+                {worker.pastCustomers.map(c => (
+                   <span key={c} style={{ background: '#F0FDF4', color: '#166534', padding: '6px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{c}</span>
                 ))}
              </div>
              <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, color: '#1E293B' }}>{t('languages')}</h3>
@@ -111,9 +125,9 @@ export function EmployeeDetail({ worker, assignedJobs, onBack, onJobClick }: Pro
         </div>
 
         {/* Right Column: Deployment History / Upcoming Jobs */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div style={{ 
-            background: '#fff', borderRadius: 24, padding: 32, border: '1px solid #F1F5F9',
+            background: '#fff', borderRadius: 24, padding: 24, border: '1px solid #F1F5F9',
             boxShadow: '0 20px 50px rgba(0,0,0,0.02)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -169,7 +183,7 @@ export function EmployeeDetail({ worker, assignedJobs, onBack, onJobClick }: Pro
           </div>
 
           {/* Performance Summary */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
             <StatCard label={t('totalJobs')} value="142" color={BLUE} />
             <StatCard label={t('reliability')} value="98%" color="#16A34A" />
             <StatCard label={t('skills')} value="2.4y" color={ORANGE} />

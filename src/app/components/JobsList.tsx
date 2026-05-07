@@ -17,6 +17,8 @@ export function JobsList({ jobs, workers, onJobClick, onStatusChange }: Props) {
     window: t('windowCleaning'),
     special: t('specialCleaning'),
     snow: t('snowRemoval'),
+    grass: 'Grass Cutting',
+    machine: 'Machine Cleaning',
     general: t('generalCleaning'),
   };
 

@@ -2,18 +2,32 @@ import React, { useState } from 'react';
 import { LogIn, User, Lock, ArrowRight, Languages } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
+import { UserRole } from '../types';
+
 interface LoginProps {
-  onLogin: () => void;
+  onLogin: (role: UserRole) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<UserRole>('admin');
   const { language, setLanguage, t } = useLanguage();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin();
+    
+    // Infer role based on email for the prototype
+    let inferredRole: UserRole = 'admin';
+    const emailLower = email.toLowerCase();
+    
+    if (emailLower.includes('office') || emailLower.includes('secretary')) {
+      inferredRole = 'secretary';
+    } else if (emailLower.includes('maria') || emailLower.includes('supervisor')) {
+      inferredRole = 'supervisor';
+    }
+    
+    onLogin(inferredRole);
   };
 
   return (
@@ -83,6 +97,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             </div>
 
+
             <button
               type="submit"
               className="w-full flex items-center justify-center px-6 py-5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm uppercase tracking-[0.2em] rounded-2xl transition-all shadow-xl shadow-blue-100 group active:scale-[0.98] mt-8"
@@ -93,13 +108,26 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </form>
 
           <div className="pt-4">
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col items-center gap-2 shadow-sm">
-              <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <span>{t('demoCredentials')}:</span>
-                <code className="bg-white px-3 py-1 rounded-lg border border-slate-200 text-slate-800 select-all font-mono">admin@liman.ok</code>
-                <span>/</span>
-                <code className="bg-white px-3 py-1 rounded-lg border border-slate-200 text-slate-800 select-all font-mono">admin123</code>
+            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4 shadow-sm">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center mb-2">Demo Credentials</div>
+              
+              <div className="grid grid-cols-1 gap-3">
+                <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-xl border border-slate-200">
+                  <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wider">Admin</span>
+                  <div className="text-[11px] font-mono text-slate-600">admin@liman.at / admin123</div>
+                </div>
+                
+                <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-xl border border-slate-200">
+                  <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Secretary</span>
+                  <div className="text-[11px] font-mono text-slate-600">office@liman.at / secretary123</div>
+                </div>
+                
+                <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-xl border border-slate-200">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Supervisor</span>
+                  <div className="text-[11px] font-mono text-slate-600">maria@liman.at / supervisor123</div>
+                </div>
               </div>
+              <p className="text-[9px] text-slate-400 text-center italic">Any email/password will work for this prototype.</p>
             </div>
           </div>
         </div>

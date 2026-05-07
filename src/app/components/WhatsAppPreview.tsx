@@ -9,6 +9,8 @@ const JOB_TYPE_LABELS = (t: any): Record<JobType, string> => ({
   window: t('windowCleaning'),
   special: t('specialCleaning'),
   snow: t('snowRemoval'),
+  grass: 'Grass Cutting',
+  machine: 'Machine Cleaning',
   general: t('generalCleaning'),
 });
 
@@ -16,6 +18,8 @@ const JOB_TYPE_ICONS: Record<JobType, string> = {
   window: '🪟',
   special: '⭐',
   snow: '❄️',
+  grass: '🌱',
+  machine: '⚙️',
   general: '🧹',
 };
 
@@ -49,7 +53,11 @@ function buildMessage(job: Job, assignedWorkers: Worker[], t: any, language: str
   ];
 
   if (assignedWorkers.length > 0) {
-    assignedWorkers.forEach(w => lines.push(`  • ${w.name}`));
+    assignedWorkers.forEach(w => {
+      let role = '';
+      if (w.isSupervisor) role = ' (Supervisor)';
+      lines.push(`  • ${w.name}${role}`);
+    });
   } else {
     lines.push(`  • (${t('noWorkersFound')})`);
   }

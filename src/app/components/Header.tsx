@@ -7,15 +7,18 @@ const ORANGE = '#F59E0B';
 
 import { useLanguage } from '../LanguageContext';
 
+import { UserRole } from '../types';
+
 interface HeaderProps {
   selectedDate: string;
   onDateChange: (date: string) => void;
   onAddJob: () => void;
   jobCount: number;
   workerCount: number;
+  userRole: UserRole;
 }
 
-export function Header({ selectedDate, onDateChange, onAddJob, jobCount, workerCount }: HeaderProps) {
+export function Header({ selectedDate, onDateChange, onAddJob, jobCount, workerCount, userRole }: HeaderProps) {
   const { t, language } = useLanguage();
   const date = parseISO(selectedDate);
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -65,13 +68,15 @@ export function Header({ selectedDate, onDateChange, onAddJob, jobCount, workerC
             </div>
           </div>
 
-          <button
-            onClick={onAddJob}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-2xl text-sm font-bold shadow-xl shadow-blue-100 transition-all active:scale-[0.97] group"
-          >
-            <Plus size={18} strokeWidth={3.5} className="group-hover:rotate-90 transition-transform duration-300" />
-            <span className="tracking-tight">{t('createJob')}</span>
-          </button>
+          {userRole !== 'supervisor' && (
+            <button
+              onClick={onAddJob}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-2xl text-sm font-bold shadow-xl shadow-blue-100 transition-all active:scale-[0.97] group"
+            >
+              <Plus size={18} strokeWidth={3.5} className="group-hover:rotate-90 transition-transform duration-300" />
+              <span className="tracking-tight">{t('createJob')}</span>
+            </button>
+          )}
         </div>
       </div>
 
