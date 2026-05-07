@@ -32,9 +32,9 @@ export function Header({ selectedDate, onDateChange, onAddJob, jobCount, workerC
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-100">
       {/* Brand bar */}
-      <div className="px-7 py-5 flex items-center justify-between gap-6">
+      <div className="px-7 py-2.5 flex items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="md:hidden w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-blue-100">L</div>
+          <div className="md:hidden w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-blue-100">L</div>
           <div className="hidden md:block">
             <h1 className="text-xl font-bold tracking-tight text-slate-800">{t('schedule')}</h1>
             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mt-1.5 flex items-center gap-2">

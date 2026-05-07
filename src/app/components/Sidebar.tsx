@@ -34,9 +34,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
   ].filter(item => item.roles.includes(userRole));
   return (
     <aside className="w-64 h-screen bg-white text-slate-500 flex flex-col fixed left-0 top-0 z-50 shadow-[10px_0_40px_rgba(0,0,0,0.02)] border-r border-slate-50">
-      <div className="p-8 flex items-center gap-4">
+      <div className="p-6 flex items-center gap-4">
         <div className="relative group">
-          <div className="w-11 h-11 bg-[#F59E0B] rounded-2xl flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-orange-100 transition-transform group-hover:scale-110">
+          <div className="w-9 h-9 bg-[#F59E0B] rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-orange-100 transition-transform group-hover:scale-110">
             L
           </div>
           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#2563EB] rounded-lg border-2 border-white shadow-sm" />
@@ -47,12 +47,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
         </div>
       </div>
 
-      <nav className="flex-1 px-5 py-4 space-y-1.5 overflow-y-auto">
+      <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
         {menuItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onModuleChange(item.id)}
-            className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-300 group ${
               activeModule === item.id 
                 ? 'bg-blue-50 text-blue-600 border border-blue-100 shadow-sm' 
                 : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
@@ -69,9 +69,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
         ))}
       </nav>
 
-      <div className="p-6 mt-auto space-y-5">
+      <div className="p-4 mt-auto space-y-4">
         {userRole === 'admin' ? (
-          <div className="bg-orange-50/40 rounded-[24px] p-5 border border-orange-100/50">
+          <div className="bg-orange-50/40 rounded-[20px] p-4 border border-orange-100/50">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-1.5 bg-white rounded-lg shadow-sm">
                 <ShieldCheck className="w-3.5 h-3.5 text-orange-400" />
@@ -87,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
             </button>
           </div>
         ) : (
-          <div className="bg-slate-50 rounded-[24px] p-5 border border-slate-100">
+          <div className="bg-slate-50 rounded-[20px] p-4 border border-slate-100">
             <div className="flex items-center gap-2 mb-0">
               <div className="p-1.5 bg-white rounded-lg shadow-sm">
                 <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
@@ -99,7 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
+        <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
           <Languages className="w-4 h-4 text-slate-400" />
           <div className="flex bg-white p-1 rounded-xl border border-slate-100 shadow-sm">
             <button
@@ -123,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
 
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-5 py-4 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all font-semibold text-sm group"
+          className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all font-semibold text-sm group"
         >
           <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           <span>{t('logout')}</span>

@@ -11,7 +11,7 @@ interface Props {
   onJobClick: (job: Job) => void;
 }
 
-export function EmployeeDetail({ worker, assignedJobs, onBack, onJobClick }: Props) {
+export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick }: Props) {
   const { t } = useLanguage();
 
   return (

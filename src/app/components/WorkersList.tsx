@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Languages, Briefcase, ChevronRight, User, ShieldCheck } from 'lucide-react';
+import { Star, Languages, Briefcase, ChevronRight, User, ShieldCheck, Plus } from 'lucide-react';
 import type { Worker } from '../types';
 import { useLanguage } from '../LanguageContext';
 import { BLUE, ORANGE } from '../constants';
@@ -7,9 +7,10 @@ import { BLUE, ORANGE } from '../constants';
 interface Props {
   workers: Worker[];
   onWorkerClick: (worker: Worker) => void;
+  onAddWorker: () => void;
 }
 
-export function WorkersList({ workers, onWorkerClick }: Props) {
+export function WorkersList({ workers, onWorkerClick, onAddWorker }: Props) {
   const { t } = useLanguage();
 
   return (
@@ -19,12 +20,18 @@ export function WorkersList({ workers, onWorkerClick }: Props) {
           <h2 style={{ fontSize: 24, fontWeight: 700, color: '#0F1A2A', margin: 0 }}>{t('allWorkers')}</h2>
           <p style={{ fontSize: 14, color: '#64748B', marginTop: 4 }}>{workers.length} {t('totalWorkers')}</p>
         </div>
-        <button style={{
-          background: BLUE, color: '#fff', border: 'none', borderRadius: 12,
-          padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-          boxShadow: '0 10px 20px rgba(37, 99, 235, 0.15)'
-        }}>
-          + {t('viewDetail')}
+        <button 
+          onClick={onAddWorker}
+          style={{
+            background: BLUE, color: '#fff', border: 'none', borderRadius: 14,
+            padding: '12px 24px', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+            boxShadow: `0 8px 20px ${BLUE}33`, display: 'flex', alignItems: 'center', gap: 8,
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+        >
+          <Plus size={18} strokeWidth={2.5} /> Add Worker
         </button>
       </div>
 

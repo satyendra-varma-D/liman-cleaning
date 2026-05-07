@@ -64,12 +64,21 @@ export const suggestTeam = (
   // 3. Select the team
   const selected: { worker: Worker; reason: string }[] = [];
   
-  // Try to pick at least one supervisor if needed (for larger teams or special jobs)
-  if (job.workersNeeded > 1) {
+  // A. Try to pick at least one German speaker (Required)
+  const germanSpeaker = candidates.find(c => c.worker.languages.includes('DE'));
+  if (germanSpeaker) {
+    selected.push({ worker: germanSpeaker.worker, reason: 'German Speaker (Required)' });
+    const index = candidates.indexOf(germanSpeaker);
+    candidates.splice(index, 1);
+  } else {
+    result.missingRoles.push('German Speaker');
+  }
+
+  // B. Try to pick at least one supervisor if needed
+  if (job.workersNeeded > 1 && !selected.some(s => s.worker.isSupervisor)) {
     const supervisor = candidates.find(c => c.worker.isSupervisor);
     if (supervisor) {
-      selected.push({ worker: supervisor.worker, reason: supervisor.reasons[0] || 'Team Lead' });
-      // Remove from candidates
+      selected.push({ worker: supervisor.worker, reason: 'Supervisor (Team Lead)' });
       const index = candidates.indexOf(supervisor);
       candidates.splice(index, 1);
     } else {
@@ -77,7 +86,7 @@ export const suggestTeam = (
     }
   }
 
-  // Fill the rest
+  // C. Fill the rest of the spots
   while (selected.length < job.workersNeeded && candidates.length > 0) {
     const next = candidates.shift()!;
     selected.push({ worker: next.worker, reason: next.reasons[0] });

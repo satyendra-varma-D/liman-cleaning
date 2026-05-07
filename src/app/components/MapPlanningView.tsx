@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Users, CloudRain, Sun, Wind, Thermometer, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { MapPin, Users, CloudRain, Sun, Wind, Thermometer, ShieldCheck, AlertTriangle, Clock } from 'lucide-react';
 import type { Job, Worker } from '../types';
 import { JOB_TYPE_COLORS } from '../constants';
 
@@ -138,7 +138,7 @@ export const MapPlanningView: React.FC<Props> = ({ jobs, workers, onJobClick }) 
                     flexDirection: 'column',
                     gap: 4
                   }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#1E293B' }}>{job.customerName}</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#1E293B' }}>{job.client}</div>
                     <div style={{ fontSize: 9, fontWeight: 700, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4 }}>
                        <Clock size={10} /> {job.time} • {job.assignedWorkers.length} Workers
                     </div>

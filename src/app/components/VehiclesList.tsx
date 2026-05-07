@@ -4,9 +4,10 @@ import { BLUE } from '../constants';
 
 interface Props {
   vehicles: Vehicle[];
+  onAssignVehicle: (vehicleId: string) => void;
 }
 
-export function VehiclesList({ vehicles }: Props) {
+export function VehiclesList({ vehicles, onAssignVehicle }: Props) {
   return (
     <div style={{ padding: '0 0' }}>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -76,6 +77,22 @@ export function VehiclesList({ vehicles }: Props) {
                 </>
               )}
             </div>
+
+            {vehicle.status === 'available' && (
+              <button 
+                onClick={() => onAssignVehicle(vehicle.id)}
+                style={{
+                  width: '100%', padding: '12px', borderRadius: 12, background: BLUE, color: '#fff',
+                  border: 'none', fontWeight: 800, fontSize: 13, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+              >
+                Assign to Order
+              </button>
+            )}
           </div>
         ))}
       </div>

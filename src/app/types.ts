@@ -1,4 +1,4 @@
-export type JobType = 'window' | 'special' | 'snow' | 'grass' | 'machine' | 'general';
+export type JobType = 'window' | 'special' | 'snow' | 'grass' | 'machine' | 'general' | 'office' | 'facade' | 'industrial';
 export type JobStatus = 'scheduled' | 'in-progress' | 'completed' | 'pending';
 
 export interface Vehicle {
