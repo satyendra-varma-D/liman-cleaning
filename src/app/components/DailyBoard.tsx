@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, AlertTriangle, Users, LayoutGrid, List, Clock, MapPin, CloudSun, CloudRain, Sun, Thermometer, Wind, Cloud, Map as MapIcon } from 'lucide-react';
+import { ChevronRight, AlertTriangle, Users, LayoutGrid, List, Clock, MapPin, CloudSun, CloudRain, Sun, Thermometer, Wind, Cloud, Map as MapIcon, ShieldCheck, Plus } from 'lucide-react';
 import type { Job, Worker, JobStatus, JobType, Vehicle } from '../types';
 import { useLanguage } from '../LanguageContext';
 import { JOB_TYPE_COLORS, STATUS_OPTIONS, BLUE, ORANGE } from '../constants';
@@ -16,18 +16,25 @@ interface Props {
   onAssignWorker: (workerId: string) => void;
   onWorkerClick: (worker: Worker) => void;
   onReschedule: (job: Job) => void;
+  onCreateJob: () => void;
   userRole: UserRole;
 }
 
-export function DailyBoard({ jobs, workers, vehicles, onJobClick, onStatusChange, onUnassignWorker, onAssignWorker, onWorkerClick, onReschedule, userRole }: Props) {
+export function DailyBoard({ jobs, workers, vehicles, onJobClick, onStatusChange, onUnassignWorker, onAssignWorker, onWorkerClick, onReschedule, onCreateJob, userRole }: Props) {
   const { t, language } = useLanguage();
   const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'map'>('kanban');
   const [selectedWorkerFilter, setSelectedWorkerFilter] = useState<'total' | 'available' | 'busy' | 'not-available' | null>('available');
 
   const statusConfig: Record<string, { label: string; bg: string; color: string; bar: string; icon: string }> = {
+    pending:      { label: t('statusPending'), bg: '#FEFCE8', color: '#854D0E', bar: '#FDE047', icon: '⏳' },
+    scheduled:    { label: t('statusScheduled'), bg: '#EFF6FF', color: '#1E40AF', bar: '#3B82F6', icon: '📅' },
+    'in-progress':{ label: t('statusInProgress'), bg: '#FFF7ED', color: '#9A3412', bar: '#F97316', icon: '⚡' },
+    completed:    { label: t('statusCompleted'), bg: '#F0FDF4', color: '#166534', bar: '#22C55E', icon: '✅' },
+    unassigned:   { label: 'Unassigned',         bg: '#FEF2F2', color: '#EF4444', bar: '#EF4444', icon: '⚠️' },
+    incomplete:   { label: 'Incomplete',         bg: '#FFF1F2', color: '#E11D48', bar: '#E11D48', icon: '❗' },
+    // Column mappings
     upcoming:     { label: 'Scheduled / At Risk', bg: '#EFF6FF', color: '#1E40AF', bar: '#3B82F6', icon: '📅' },
     ongoing:      { label: 'Work in Progress',    bg: '#FFF7ED', color: '#9A3412', bar: '#F97316', icon: '⚡' },
-    completed:    { label: 'Completed',          bg: '#F0FDF4', color: '#166534', bar: '#22C55E', icon: '✅' },
   };
 
   const getJobRisk = (job: Job) => {
@@ -236,9 +243,19 @@ export function DailyBoard({ jobs, workers, vehicles, onJobClick, onStatusChange
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ 
                           width: 36, height: 36, borderRadius: 12, background: worker.isSupervisor ? '#16A34A' : BLUE, 
-                          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800 
+                          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800,
+                          position: 'relative', overflow: 'visible'
                         }}>
-                          {worker.name[0]}
+                          {worker.avatar ? (
+                            <img src={worker.avatar} alt={worker.name} style={{ width: '100%', height: '100%', borderRadius: 12, objectFit: 'cover' }} />
+                          ) : (
+                            worker.name[0]
+                          )}
+                          {worker.isSupervisor && (
+                            <div style={{ position: 'absolute', bottom: -4, right: -4, background: '#16A34A', border: '2px solid #fff', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <ShieldCheck size={8} color="#fff" />
+                            </div>
+                          )}
                         </div>
                         <div>
                           <div style={{ fontWeight: 800, color: '#1E293B', fontSize: 14 }}>{worker.name}</div>
@@ -346,43 +363,55 @@ export function DailyBoard({ jobs, workers, vehicles, onJobClick, onStatusChange
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1E293B' }}>Orders Management</h2>
-          
-          <div style={{ display: 'flex', background: '#fff', borderRadius: 12, padding: '4px', border: '1.5px solid #E2E8F0' }}>
-            <button
-              onClick={() => setViewMode('kanban')}
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ display: 'flex', background: '#fff', borderRadius: 12, padding: '4px', border: '1.5px solid #E2E8F0' }}>
+              <button
+                onClick={() => setViewMode('kanban')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 12px', borderRadius: 8,
+                  background: viewMode === 'kanban' ? BLUE : 'transparent',
+                  color: viewMode === 'kanban' ? '#fff' : '#64748B',
+                  border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                <LayoutGrid size={14} /> Kanban
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 12px', borderRadius: 8,
+                  background: viewMode === 'list' ? BLUE : 'transparent',
+                  color: viewMode === 'list' ? '#fff' : '#64748B',
+                  border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                <List size={14} /> List
+              </button>
+              <button
+                onClick={() => setViewMode('map')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 12px', borderRadius: 8,
+                  background: viewMode === 'map' ? BLUE : 'transparent',
+                  color: viewMode === 'map' ? '#fff' : '#64748B',
+                  border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                <MapIcon size={14} /> Map
+              </button>
+            </div>
+            <button 
+              onClick={onCreateJob}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px', borderRadius: 8,
-                background: viewMode === 'kanban' ? BLUE : 'transparent',
-                color: viewMode === 'kanban' ? '#fff' : '#64748B',
-                border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+                background: BLUE, color: '#fff', border: 'none', borderRadius: 12,
+                padding: '0 20px', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+                boxShadow: `0 8px 20px ${BLUE}33`, display: 'flex', alignItems: 'center', gap: 8,
+                transition: 'all 0.2s'
               }}
             >
-              <LayoutGrid size={14} /> Kanban
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px', borderRadius: 8,
-                background: viewMode === 'list' ? BLUE : 'transparent',
-                color: viewMode === 'list' ? '#fff' : '#64748B',
-                border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
-              }}
-            >
-              <List size={14} /> List
-            </button>
-            <button
-              onClick={() => setViewMode('map')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px', borderRadius: 8,
-                background: viewMode === 'map' ? BLUE : 'transparent',
-                color: viewMode === 'map' ? '#fff' : '#64748B',
-                border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
-              }}
-            >
-              <MapIcon size={14} /> Map
+              <Plus size={18} strokeWidth={2.5} /> Create Order
             </button>
           </div>
         </div>
@@ -391,7 +420,7 @@ export function DailyBoard({ jobs, workers, vehicles, onJobClick, onStatusChange
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
             {['upcoming', 'ongoing', 'completed'].map(status => {
               const statusJobs = jobs.filter(j => {
-                if (status === 'upcoming') return j.status === 'pending' || j.status === 'scheduled';
+                if (status === 'upcoming') return j.status === 'pending' || j.status === 'scheduled' || j.status === 'unassigned' || j.status === 'incomplete';
                 if (status === 'ongoing') return j.status === 'in-progress';
                 return j.status === 'completed';
               }).sort((a, b) => {

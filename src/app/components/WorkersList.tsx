@@ -50,7 +50,7 @@ export function WorkersList({ workers, onWorkerClick, onAddWorker }: Props) {
           background: '#F8FAFD',
           borderBottom: '1px solid #F1F5F9',
         }}>
-          {['ID', t('assignedWorkers'), t('skills'), t('languages'), t('reliability'), t('status'), ''].map((h, i) => (
+          {['ID', t('assignedWorkers'), 'Skills', t('languages'), t('reliability'), t('status'), ''].map((h, i) => (
             <div key={i} style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               {h}
             </div>
@@ -87,11 +87,16 @@ export function WorkersList({ workers, onWorkerClick, onAddWorker }: Props) {
                   width: 36, height: 36, borderRadius: 12,
                   background: BLUE, color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 14, fontWeight: 700, position: 'relative'
+                  fontSize: 14, fontWeight: 700, position: 'relative',
+                  overflow: 'visible'
                 }}>
-                  {worker.name[0]}
+                  {worker.avatar ? (
+                    <img src={worker.avatar} alt={worker.name} style={{ width: '100%', height: '100%', borderRadius: 12, objectFit: 'cover' }} />
+                  ) : (
+                    worker.name[0]
+                  )}
                   {worker.isSupervisor && (
-                    <div title="Supervisor" style={{ position: 'absolute', bottom: -4, right: -4, background: '#16A34A', borderRadius: '50%', border: '2px solid #fff', padding: 2 }}>
+                    <div title="Supervisor" style={{ position: 'absolute', bottom: -4, right: -4, background: '#16A34A', borderRadius: '50%', border: '2px solid #fff', padding: 2, display: 'flex' }}>
                       <ShieldCheck size={10} color="#fff" />
                     </div>
                   )}

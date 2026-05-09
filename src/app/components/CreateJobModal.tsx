@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Sparkles, CheckCircle2, ChevronRight, ChevronLeft, MapPin, User } from 'lucide-react';
+import { X, Sparkles, CheckCircle2, ChevronRight, ChevronLeft, MapPin, User, Users, ArrowLeft, Calendar, Clock, Briefcase, AlertTriangle, RefreshCw, Timer, CloudSun } from 'lucide-react';
 import type { Job, JobType, Worker } from '../types';
 import { useLanguage } from '../LanguageContext';
 import { BLUE, ORANGE } from '../constants';
+import { suggestTeam } from '../SuggestionEngine';
 
 interface Props {
   job: Job | null;
@@ -71,58 +72,137 @@ function Toggle({ active, onToggle }: { active: boolean; onToggle: () => void })
   );
 }
 
-function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, onToggle }: { 
-  worker: Worker; isSelected: boolean; isSuggested: boolean; matchingSkills: string[]; onToggle: () => void 
+function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons = [], onToggle }: { 
+  worker: Worker; isSelected: boolean; isSuggested: boolean; matchingSkills: string[]; reasons?: string[]; onToggle: () => void 
 }) {
+  const [showAI, setShowAI] = useState(false);
+
   return (
     <div 
-      onClick={onToggle}
       style={{
-        padding: '12px 16px', borderRadius: 16, border: '1.5px solid',
+        padding: '16px', borderRadius: 20, border: '1.5px solid',
         borderColor: isSelected ? BLUE : '#F1F5F9',
         background: isSelected ? '#EFF6FF' : '#fff',
         cursor: 'pointer',
         transition: 'all 0.2s',
-        display: 'flex', alignItems: 'center', gap: 16,
-        boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.1)' : 'none'
+        display: 'flex', flexDirection: 'column', gap: 12,
+        boxShadow: isSelected ? '0 10px 20px rgba(59, 130, 246, 0.08)' : '0 4px 6px rgba(0,0,0,0.02)',
+        position: 'relative'
+      }}
+      onClick={(e) => {
+        // Only toggle if not clicking the AI badge
+        onToggle();
       }}
     >
-      <div style={{ 
-        width: 40, height: 40, borderRadius: 12, 
-        background: worker.isSupervisor ? '#16A34A' : BLUE, 
-        color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800
-      }}>
-        {worker.name[0]}
-      </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#1E293B' }}>{worker.name}</div>
-          {isSuggested && matchingSkills.length > 0 && (
-            <div style={{ fontSize: 10, color: '#16A34A', fontWeight: 800, background: '#F0FDF4', padding: '2px 6px', borderRadius: 6 }}>
-              Best Fit
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ position: 'relative' }}>
+          {worker.avatar ? (
+            <img 
+              src={worker.avatar} 
+              alt={worker.name} 
+              style={{ width: 56, height: 56, borderRadius: 18, objectFit: 'cover' }} 
+            />
+          ) : (
+            <div style={{ 
+              width: 56, height: 56, borderRadius: 18, 
+              background: worker.isSupervisor ? '#16A34A' : BLUE, 
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20
+            }}>
+              {worker.name[0]}
+            </div>
+          )}
+          {worker.isSupervisor && (
+            <div style={{ 
+              position: 'absolute', bottom: -4, right: -4, background: '#16A34A', color: '#fff', 
+              width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '2px solid #fff', fontSize: 10, fontWeight: 900
+            }}>
+              S
             </div>
           )}
         </div>
+
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#1E293B' }}>{worker.name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: '#F59E0B' }}>★</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#1E293B' }}>{worker.rating || '4.5'}</span>
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
+            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{worker.totalJobs || 0} jobs</div>
+            <div style={{ width: 3, height: 3, borderRadius: '50%', background: '#CBD5E1' }} />
+            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{worker.reliability}/5 rel.</div>
+          </div>
+        </div>
+
+        <div style={{ 
+          width: 22, height: 22, borderRadius: '50%', border: '2.5px solid',
+          borderColor: isSelected ? BLUE : '#E2E8F0',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: isSelected ? BLUE : 'transparent'
+        }}>
+          {isSelected && <CheckCircle2 size={14} color="#fff" strokeWidth={3} />}
+        </div>
+      </div>
+
+      {/* AI Reasoning Section */}
+      {isSuggested && reasons.length > 0 && (
+        <div 
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowAI(!showAI);
+          }}
+          style={{ 
+            marginTop: 4, 
+            background: '#F0FDF4', 
+            borderRadius: 12, 
+            padding: showAI ? '12px' : '6px 12px',
+            border: '1px solid #DCFCE7',
+            transition: 'all 0.3s'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Sparkles size={12} color="#16A34A" />
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#15803D' }}>AI INSIGHT</span>
+            </div>
+            {!showAI && (
+              <div style={{ fontSize: 10, color: '#16A34A', fontWeight: 800 }}>
+                {reasons[0]}
+              </div>
+            )}
+          </div>
+          
+          {showAI && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {reasons.map((r, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                  <div style={{ marginTop: 5, width: 4, height: 4, borderRadius: '50%', background: '#16A34A' }} />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#166534', lineHeight: 1.4 }}>{r}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!isSuggested && (
         <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
           {worker.skills.map(s => (
             <span key={s} style={{ 
-              fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-              background: matchingSkills.includes(s) ? '#DBEAFE' : '#F1F5F9',
-              color: matchingSkills.includes(s) ? BLUE : '#64748B'
+              fontSize: 9, fontWeight: 800, padding: '2px 8px', borderRadius: 6,
+              background: matchingSkills.includes(s) ? '#DBEAFE' : '#F8FAFC',
+              color: matchingSkills.includes(s) ? BLUE : '#94A3B8',
+              textTransform: 'uppercase'
             }}>
               {s}
             </span>
           ))}
         </div>
-      </div>
-      <div style={{ 
-        width: 20, height: 20, borderRadius: '50%', border: '2px solid',
-        borderColor: isSelected ? BLUE : '#CBD5E1',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: isSelected ? BLUE : 'transparent'
-      }}>
-        {isSelected && <CheckCircle2 size={14} color="#fff" />}
-      </div>
+      )}
     </div>
   );
 }
@@ -139,23 +219,56 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
   const [assignedWorkers, setAssignedWorkers] = useState<string[]>(job?.assignedWorkers ?? defaultWorkerIds);
   const [notes, setNotes]                 = useState(job?.notes ?? '');
   const [requiredSkills, setRequiredSkills] = useState<string[]>(job?.requiredSkills ?? [job?.type ?? 'general']);
+  const [isRecurring, setIsRecurring]     = useState(job?.isRecurring ?? false);
+  const [priority, setPriority]           = useState<'high' | 'medium' | 'low'>(job?.priority ?? 'medium');
+  const [estimatedDuration, setEstimatedDuration] = useState(job?.estimatedDuration ?? '');
+  const [isWeatherDependent, setIsWeatherDependent] = useState(job?.isWeatherDependent ?? false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Auto-select best fit workers when moving to worker selection step
+  const isEdit = !!job;
+
+  const suggestionResults = useMemo(() => {
+    const dummyJob: Job = {
+      id: job?.id || 'temp',
+      client,
+      location,
+      date,
+      time,
+      workersNeeded,
+      assignedWorkers,
+      type,
+      status: 'pending',
+      requiredSkills,
+      needsGermanSpeaker: true,
+      isWeatherDependent,
+      isRecurring,
+      priority,
+      estimatedDuration,
+      notes,
+    };
+
+    return suggestTeam(dummyJob, workers, new Set());
+  }, [workers, client, requiredSkills, workersNeeded, isRecurring, priority]);
+
+  const recommendedIds = useMemo(() => suggestionResults.recommendedTeam.map(t => t.worker.id), [suggestionResults]);
+
+  useEffect(() => {
+    if (initialStep) {
+      setStep(initialStep);
+    }
+  }, [initialStep]);
+
   useEffect(() => {
     if (step === 'workers' && assignedWorkers.length === 0) {
-      const bestFitIds = scoredWorkers.slice(0, workersNeeded).map(w => w.id);
-      setAssignedWorkers(bestFitIds);
+      setAssignedWorkers(recommendedIds);
     }
-  }, [step]);
+  }, [step, recommendedIds]);
 
   useEffect(() => {
     if (!job && type) {
       setRequiredSkills([type]);
     }
   }, [type, job]);
-
-  const isEdit = !!job;
 
   const jobTypes: { value: JobType; label: string; icon: string }[] = [
     { value: 'general', label: 'General Cleaning', icon: '🧹' },
@@ -181,31 +294,6 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
     return CUSTOMERS.filter(c => c.name.toLowerCase().includes(client.toLowerCase()));
   }, [client]);
 
-  const scoredWorkers = useMemo(() => {
-    const hasGermanSpeakerAssigned = assignedWorkers.some(id => 
-      workers.find(w => w.id === id)?.languages.includes('DE')
-    );
-
-    return workers.map(w => {
-      let score = 0;
-      // Skill match
-      const matchingSkills = w.skills.filter(s => requiredSkills.includes(s));
-      score += matchingSkills.length * 10;
-      
-      // Role boost
-      if (w.isSupervisor) score += 5;
-      
-      // Availability check (basic)
-      if (w.available) score += 20;
-
-      // German language boost if none assigned
-      if (!hasGermanSpeakerAssigned && w.languages.includes('DE')) {
-        score += 50; // High priority for at least one German speaker
-      }
-
-      return { ...w, score };
-    }).sort((a, b) => b.score - a.score);
-  }, [workers, requiredSkills, assignedWorkers]);
 
   const handleSuggestFromPast = () => {
     const c = client.toLowerCase();
@@ -249,184 +337,188 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
       notes: notes.trim(),
       requiredSkills,
       needsGermanSpeaker: true, // Mandatory
-      isWeatherDependent: false,
+      isWeatherDependent,
+      isRecurring,
+      priority,
+      estimatedDuration,
     });
   };
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0,
-      background: 'rgba(15, 23, 42, 0.4)',
-      backdropFilter: 'blur(4px)',
-      display: 'flex', justifyContent: 'flex-end',
-      zIndex: 1000,
-    }}>
-      <div style={{
-        background: '#fff',
-        width: '100%', maxWidth: 520, height: '100%',
-        display: 'flex', flexDirection: 'column',
-        boxShadow: '-20px 0 60px rgba(0,0,0,0.15)',
-        animation: 'slideIn 0.3s ease-out forwards',
-      }}>
-        <style>{`
-          @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-          }
-        `}</style>
-        
-        {/* Header */}
-        <div style={{
-          padding: '20px 32px',
-          background: BLUE,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {step === 'workers' && (
-              <button 
-                onClick={() => setStep('details')}
-                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, padding: 6, color: '#fff', cursor: 'pointer' }}
-              >
-                <ChevronLeft size={18} />
-              </button>
-            )}
-            <div>
-              <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 900, margin: 0, letterSpacing: '-0.02em' }}>
-                {step === 'details' ? (isEdit ? t('edit') : t('createJob')) : 'Assign Workers'}
-              </h2>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, margin: '2px 0 0 0', fontWeight: 600 }}>
-                {step === 'details' ? 'Order details & requirements' : `Assign ${workersNeeded} workers to this order`}
-              </p>
-            </div>
-          </div>
+    <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', padding: '16px 24px' }}>
+      {/* Top Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(255,255,255,0.15)', border: 'none',
-              borderRadius: 10, padding: 8, color: '#fff',
-              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              width: 44, height: 44, borderRadius: 14,
+              background: '#fff', border: '1.5px solid #F1F5F9',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: '#64748B', transition: 'all 0.2s',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
             }}
           >
-            <X size={18} strokeWidth={3} />
+            <ArrowLeft size={20} />
           </button>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.03em' }}>
+              {isEdit ? t('edit') : t('createJob')}
+            </h1>
+            <p style={{ margin: '4px 0 0 0', color: '#64748B', fontSize: 14, fontWeight: 600 }}>
+              {step === 'details' ? 'Step 1: Order details & requirements' : 'Step 2: Assign workers'}
+            </p>
+          </div>
         </div>
 
-        {/* Form Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
+        <div style={{ display: 'flex', gap: 12 }}>
+          {step === 'workers' && (
+            <button
+              onClick={() => setStep('details')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: '#fff', border: '1.5px solid #E2E8F0',
+                borderRadius: 14, padding: '12px 24px',
+                cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#1E293B',
+              }}
+            >
+              <ChevronLeft size={18} /> Back to Details
+            </button>
+          )}
+          <button
+            onClick={handleSubmit}
+            disabled={step === 'details' ? (!client.trim() || !location.trim()) : assignedWorkers.length < 1}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: step === 'details' ? BLUE : '#16A34A',
+              color: '#fff', border: 'none',
+              borderRadius: 14, padding: '12px 24px',
+              cursor: 'pointer', fontSize: 15, fontWeight: 700,
+              boxShadow: `0 10px 20px ${step === 'details' ? 'rgba(37, 99, 235, 0.2)' : 'rgba(22, 163, 74, 0.2)'}`,
+              opacity: (step === 'details' ? (!client.trim() || !location.trim()) : assignedWorkers.length < 1) ? 0.6 : 1
+            }}
+          >
+            {step === 'details' ? 'Next: Select Workers' : 'Confirm & Schedule Order'} 
+            {step === 'details' && <ChevronRight size={18} />}
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: step === 'details' ? '1fr 380px' : '1fr', gap: 24, alignItems: 'start' }}>
+        {/* Main Content Area */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {step === 'details' ? (
-            <div style={{ display: 'grid', gap: 20 }}>
-              {/* Client with Autocomplete */}
-              <div style={{ position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ 
+              background: '#fff', borderRadius: 24, padding: 32, border: '1px solid #F1F5F9',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.02)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EFF6FF', color: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Briefcase size={18} />
+                </div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1E293B' }}>Core Information</h3>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+                {/* Client */}
+                <div style={{ position: 'relative' }}>
                   <label style={labelStyle}>{t('client')} *</label>
-                  {!isEdit && (
-                    <button 
-                      type="button"
-                      onClick={handleSuggestFromPast}
-                      style={{ background: 'none', border: 'none', color: BLUE, fontSize: 10, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                    >
-                      <Sparkles size={12} /> Smart Fill
-                    </button>
-                  )}
-                </div>
-                <input
-                  style={inputStyle}
-                  value={client}
-                  onChange={e => {
-                    setClient(e.target.value);
-                    setShowSuggestions(true);
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  placeholder="e.g. Raiffeisen Bank AG"
-                  required
-                />
-                {showSuggestions && filteredCustomers.length > 0 && (
-                  <div style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0,
-                    background: '#fff', borderRadius: 14, marginTop: 8,
-                    boxShadow: '0 15px 40px rgba(15, 23, 42, 0.15)', border: '1px solid #E2E8F0',
-                    zIndex: 100, overflowY: 'auto', maxHeight: 300,
-                    animation: 'fadeInUp 0.2s ease-out'
-                  }}>
-                    <style>{`
-                      @keyframes fadeInUp {
-                        from { opacity: 0; transform: translateY(10px); }
-                        to { opacity: 1; transform: translateY(0); }
-                      }
-                    `}</style>
-                    <div style={{ padding: '10px 16px', background: '#F8FAFD', borderBottom: '1px solid #F1F5F9', fontSize: 10, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Suggested Customers
-                    </div>
-                    {filteredCustomers.map(c => (
-                      <div 
-                        key={c.name}
-                        onClick={() => {
-                          setClient(c.name);
-                          setLocation(c.location);
-                          setShowSuggestions(false);
-                        }}
-                        style={{ padding: '14px 16px', cursor: 'pointer', borderBottom: '1px solid #F1F5F9', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 12 }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.background = '#F0F9FF';
-                          e.currentTarget.style.paddingLeft = '20px';
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.background = '#fff';
-                          e.currentTarget.style.paddingLeft = '16px';
-                        }}
-                      >
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EFF6FF', color: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <User size={14} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>{c.name}</div>
-                          <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                            <MapPin size={10} /> {c.location}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Location */}
-              <div>
-                <label style={labelStyle}>{t('location')} *</label>
-                <input
-                  style={inputStyle}
-                  value={location}
-                  onChange={e => setLocation(e.target.value)}
-                  placeholder="e.g. Mariahilfer Str. 77, Vienna"
-                  required
-                />
-              </div>
-
-              {/* Date + Time */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div>
-                  <label style={labelStyle}>{t('date')}</label>
-                  <input type="date" style={inputStyle} value={date} onChange={e => setDate(e.target.value)} required />
-                </div>
-                <div>
-                  <label style={labelStyle}>{t('time')}</label>
-                  <input type="time" style={inputStyle} value={time} onChange={e => setTime(e.target.value)} required />
-                </div>
-              </div>
-
-              {/* Workers + Type */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div>
-                  <label style={labelStyle}>Required Workers *</label>
                   <input
-                    type="number" min={1} max={20}
-                    style={inputStyle}
-                    value={workersNeeded}
-                    onChange={e => setWorkersNeeded(Number(e.target.value))}
+                    style={{
+                      ...inputStyle,
+                      borderColor: (!client.trim()) ? '#EF4444' : '#E2E8F0',
+                      background: (!client.trim()) ? '#FEF2F2' : '#F8FAFD'
+                    }}
+                    value={client}
+                    onChange={e => {
+                      setClient(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    placeholder="e.g. Raiffeisen Bank AG"
                     required
                   />
+                  {!client.trim() && (
+                    <div style={{ position: 'absolute', right: 12, top: 38, color: '#EF4444' }}>
+                      <AlertTriangle size={16} />
+                    </div>
+                  )}
+                  {showSuggestions && filteredCustomers.length > 0 && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0,
+                      background: '#fff', borderRadius: 14, marginTop: 8,
+                      boxShadow: '0 15px 40px rgba(15, 23, 42, 0.15)', border: '1px solid #E2E8F0',
+                      zIndex: 100, overflowY: 'auto', maxHeight: 300
+                    }}>
+                      {filteredCustomers.map(c => (
+                        <div 
+                          key={c.name}
+                          onClick={() => {
+                            setClient(c.name);
+                            setLocation(c.location);
+                            setShowSuggestions(false);
+                          }}
+                          style={{ padding: '14px 16px', cursor: 'pointer', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 12 }}
+                        >
+                          <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>{c.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
+                {/* Location */}
+                <div>
+                  <label style={labelStyle}>{t('location')} *</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      style={{
+                        ...inputStyle,
+                        borderColor: (!location.trim()) ? '#EF4444' : '#E2E8F0',
+                        background: (!location.trim()) ? '#FEF2F2' : '#F8FAFD'
+                      }}
+                      value={location}
+                      onChange={e => setLocation(e.target.value)}
+                      placeholder="e.g. Mariahilfer Str. 77, Vienna"
+                      required
+                    />
+                    {!location.trim() && (
+                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#EF4444' }}>
+                        <AlertTriangle size={16} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Date */}
+                <div>
+                  <label style={labelStyle}>{t('date')}</label>
+                  <div style={{ position: 'relative' }}>
+                    <Calendar size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                    <input type="date" style={{ ...inputStyle, paddingLeft: 44 }} value={date} onChange={e => setDate(e.target.value)} required />
+                  </div>
+                </div>
+
+                {/* Time */}
+                <div>
+                  <label style={labelStyle}>{t('time')}</label>
+                  <div style={{ position: 'relative' }}>
+                    <Clock size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                    <input type="time" style={{ ...inputStyle, paddingLeft: 44 }} value={time} onChange={e => setTime(e.target.value)} required />
+                  </div>
+                </div>
+
+                {/* Workers Needed */}
+                <div>
+                  <label style={labelStyle}>Workers Needed *</label>
+                  <div style={{ position: 'relative' }}>
+                    <User size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                    <input type="number" min={1} style={{ ...inputStyle, paddingLeft: 44 }} value={workersNeeded} onChange={e => setWorkersNeeded(Number(e.target.value))} required />
+                  </div>
+                </div>
+
+                {/* Job Type */}
                 <div>
                   <label style={labelStyle}>Type of work *</label>
                   <select
@@ -439,10 +531,83 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
                     ))}
                   </select>
                 </div>
+
+                {/* Estimated Duration */}
+                <div>
+                  <label style={labelStyle}>Estimated Duration *</label>
+                  <div style={{ position: 'relative' }}>
+                    <Timer size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                    <input 
+                      type="text" 
+                      style={{ ...inputStyle, paddingLeft: 44 }} 
+                      value={estimatedDuration} 
+                      onChange={e => setEstimatedDuration(e.target.value)} 
+                      placeholder="e.g. 4 hours"
+                      required 
+                    />
+                  </div>
+                </div>
+
+                {/* Priority */}
+                <div>
+                  <label style={labelStyle}>Priority</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {(['low', 'medium', 'high'] as const).map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPriority(p)}
+                        style={{
+                          flex: 1, padding: '10px', borderRadius: 12, fontSize: 13, fontWeight: 700,
+                          border: '1.5px solid',
+                          borderColor: priority === p ? (p === 'high' ? '#EF4444' : p === 'medium' ? ORANGE : BLUE) : '#E2E8F0',
+                          background: priority === p ? (p === 'high' ? '#FEF2F2' : p === 'medium' ? '#FFF7ED' : '#EFF6FF') : '#fff',
+                          color: priority === p ? (p === 'high' ? '#DC2626' : p === 'medium' ? '#C2410C' : BLUE) : '#64748B',
+                          cursor: 'pointer', transition: 'all 0.2s', textTransform: 'capitalize'
+                        }}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              {/* Skills Requirement */}
-              <div>
+              {/* Switches Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, marginTop: 40, paddingTop: 32, borderTop: '1px solid #F1F5F9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Toggle active={isRecurring} onToggle={() => setIsRecurring(!isRecurring)} />
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <RefreshCw size={14} color="#64748B" /> Recurring Work
+                    </div>
+                    <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Scheduled periodically</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Toggle active={isWeatherDependent} onToggle={() => setIsWeatherDependent(!isWeatherDependent)} />
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <CloudSun size={14} color="#64748B" /> Weather Dependent
+                    </div>
+                    <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Affected by conditions</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 40, height: 22, borderRadius: 20, background: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', marginLeft: 18 }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#1E293B' }}>German Required</div>
+                    <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Mandatory for this team</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Skills */}
+              <div style={{ marginTop: 40, paddingTop: 32, borderTop: '1px solid #F1F5F9' }}>
                 <label style={labelStyle}>Required Skills</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {allSkills.map(skill => (
@@ -451,7 +616,7 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
                       type="button"
                       onClick={() => toggleSkill(skill)}
                       style={{
-                        padding: '6px 10px', borderRadius: 10, fontSize: 11, fontWeight: 700,
+                        padding: '8px 16px', borderRadius: 12, fontSize: 13, fontWeight: 700,
                         border: '1.5px solid',
                         borderColor: requiredSkills.includes(skill) ? BLUE : '#E2E8F0',
                         background: requiredSkills.includes(skill) ? '#EFF6FF' : '#fff',
@@ -460,7 +625,7 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
                         display: 'flex', alignItems: 'center', gap: 6
                       }}
                     >
-                      {requiredSkills.includes(skill) && <CheckCircle2 size={12} />}
+                      {requiredSkills.includes(skill) && <CheckCircle2 size={14} />}
                       {skill.charAt(0).toUpperCase() + skill.slice(1)}
                     </button>
                   ))}
@@ -468,10 +633,10 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
               </div>
 
               {/* Notes */}
-              <div>
+              <div style={{ marginTop: 40 }}>
                 <label style={labelStyle}>{t('notes')} (optional)</label>
                 <textarea
-                  style={{ ...inputStyle, minHeight: 100, resize: 'none' }}
+                  style={{ ...inputStyle, minHeight: 120, resize: 'none', background: '#F8FAFD' }}
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   placeholder="Additional instructions or details..."
@@ -479,133 +644,112 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-              {/* System Suggested Section */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 4 }}>
-                  <Sparkles size={16} color={ORANGE} />
-                  <span style={{ fontSize: 13, fontWeight: 900, color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    System Suggested Workers ({assignedWorkers.length})
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {scoredWorkers.slice(0, workersNeeded).map(worker => {
-                    const isSelected = assignedWorkers.includes(worker.id);
-                    const matchingSkills = worker.skills.filter(s => requiredSkills.includes(s));
-                    
-                    return (
+            <div style={{ 
+              background: '#fff', borderRadius: 24, padding: 32, border: '1px solid #F1F5F9',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.02)'
+            }}>
+              {/* Personnel Selection Content */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                {/* System Suggested Section */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#FFF7ED', color: ORANGE, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Sparkles size={18} />
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1E293B' }}>
+                      System Suggested Workers
+                    </h3>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20 }}>
+                    {suggestionResults.recommendedTeam.map(({ worker, reasons }) => (
                       <WorkerCard 
                         key={worker.id}
                         worker={worker}
-                        isSelected={isSelected}
+                        isSelected={assignedWorkers.includes(worker.id)}
                         isSuggested={true}
-                        matchingSkills={matchingSkills}
+                        reasons={reasons}
+                        matchingSkills={worker.skills.filter(s => requiredSkills.includes(s))}
                         onToggle={() => {
-                          if (isSelected) setAssignedWorkers(prev => prev.filter(id => id !== worker.id));
+                          if (assignedWorkers.includes(worker.id)) setAssignedWorkers(prev => prev.filter(id => id !== worker.id));
                           else setAssignedWorkers(prev => [...prev, worker.id]);
                         }}
                       />
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Other Available Workers Section */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 4, borderTop: '1px solid #F1F5F9', paddingTop: 16 }}>
-                  <User size={16} color="#64748B" />
-                  <span style={{ fontSize: 13, fontWeight: 900, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Other Available Workers
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {scoredWorkers.slice(workersNeeded).map(worker => {
-                    const isSelected = assignedWorkers.includes(worker.id);
-                    const matchingSkills = worker.skills.filter(s => requiredSkills.includes(s));
-                    
-                    return (
+                {/* Other Available Workers Section */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F8FAFD', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <User size={18} />
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1E293B' }}>
+                      Other Available Workers
+                    </h3>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20 }}>
+                    {workers
+                      .filter(w => !recommendedIds.includes(w.id))
+                      .map(worker => (
                       <WorkerCard 
                         key={worker.id}
                         worker={worker}
-                        isSelected={isSelected}
+                        isSelected={assignedWorkers.includes(worker.id)}
                         isSuggested={false}
-                        matchingSkills={matchingSkills}
+                        matchingSkills={worker.skills.filter(s => requiredSkills.includes(s))}
                         onToggle={() => {
-                          if (isSelected) setAssignedWorkers(prev => prev.filter(id => id !== worker.id));
+                          if (assignedWorkers.includes(worker.id)) setAssignedWorkers(prev => prev.filter(id => id !== worker.id));
                           else setAssignedWorkers(prev => [...prev, worker.id]);
                         }}
                       />
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div style={{ 
-          padding: '20px 32px', 
-          borderTop: '1px solid #F1F5F9', 
-          display: 'flex', gap: 12,
-          background: '#F8FAFD'
-        }}>
-          {step === 'details' ? (
-            <>
-              <button
-                type="button"
-                onClick={onClose}
-                style={{
-                  flex: 1, padding: '12px',
-                  border: '1.5px solid #CBD5E1', borderRadius: 12,
-                  background: '#fff', cursor: 'pointer',
-                  fontSize: 14, fontWeight: 700, color: '#475569',
-                }}
-              >
-                {t('cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={!client.trim() || !location.trim()}
-                style={{
-                  flex: 2, padding: '12px',
-                  border: 'none', borderRadius: 12,
-                  background: ORANGE, color: '#fff',
-                  cursor: 'pointer', fontSize: 14, fontWeight: 900,
-                  boxShadow: '0 10px 20px rgba(245, 158, 11, 0.2)',
-                  opacity: (!client.trim() || !location.trim()) ? 0.6 : 1
-                }}
-              >
-                Create order & Select Workers <ChevronRight size={18} style={{ verticalAlign: 'middle', marginLeft: 4 }} />
-              </button>
-            </>
-          ) : (
-            <>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>
-                  Selected: <span style={{ color: BLUE }}>{assignedWorkers.length}</span> / {workersNeeded}
-                </div>
+        {/* Sidebar Info Card (Only in Details step) */}
+        {step === 'details' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ 
+              background: BLUE, borderRadius: 24, padding: 24, color: '#fff',
+              boxShadow: '0 20px 40px rgba(37, 99, 235, 0.15)'
+            }}>
+              <h4 style={{ margin: 0, fontSize: 16, fontWeight: 800, marginBottom: 16 }}>Live Summary</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <SummaryItem label="Personnel" value={`${workersNeeded} Workers`} />
+                <SummaryItem label="Language" value="German Mandatory" />
+                <SummaryItem label="Priority" value={priority.toUpperCase()} />
+                <SummaryItem label="Recurring" value={isRecurring ? 'Yes' : 'No'} />
               </div>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={assignedWorkers.length < 1}
-                style={{
-                  flex: 2, padding: '12px',
-                  border: 'none', borderRadius: 12,
-                  background: '#16A34A', color: '#fff',
-                  cursor: 'pointer', fontSize: 14, fontWeight: 900,
-                  boxShadow: '0 10px 20px rgba(22, 163, 74, 0.2)',
-                  opacity: assignedWorkers.length < 1 ? 0.6 : 1
-                }}
-              >
-                Confirm & Schedule Order
-              </button>
-            </>
-          )}
-        </div>
+            </div>
+
+            <div style={{ 
+              background: '#FEF2F2', borderRadius: 24, padding: 24, border: '1px solid #FEE2E2',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <AlertTriangle size={18} color="#DC2626" />
+                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#991B1B' }}>Important</h4>
+              </div>
+              <p style={{ margin: 0, fontSize: 13, color: '#991B1B', lineHeight: 1.5, fontWeight: 600 }}>
+                Ensure all required skills are selected to get the best worker matches in the next step.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 8 }}>
+      <span style={{ fontSize: 12, opacity: 0.8, fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 800 }}>{value}</span>
     </div>
   );
 }

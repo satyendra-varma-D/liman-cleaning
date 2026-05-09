@@ -1,5 +1,5 @@
 export type JobType = 'window' | 'special' | 'snow' | 'grass' | 'machine' | 'general' | 'office' | 'facade' | 'industrial';
-export type JobStatus = 'scheduled' | 'in-progress' | 'completed' | 'pending';
+export type JobStatus = 'scheduled' | 'in-progress' | 'completed' | 'pending' | 'unassigned' | 'incomplete';
 
 export interface Vehicle {
   id: string;
@@ -7,6 +7,9 @@ export interface Vehicle {
   type: string;
   licensePlate: string;
   status: 'available' | 'assigned' | 'maintenance';
+  makeModel?: string;
+  fuelType?: 'Diesel' | 'Electric' | 'Petrol' | 'Hybrid';
+  photo?: string;
 }
 
 export interface Worker {
@@ -19,7 +22,19 @@ export interface Worker {
   isSupervisor: boolean;
   reliability: number; // 1-5
   pastCustomers: string[]; // IDs or names of customers they worked for
+  avatar?: string;
+  totalJobs?: number;
+  rating?: number;
+  phone?: string;
+  email?: string;
+  nationality?: string;
+  canDrive?: boolean;
+  leaves?: string[]; // Array of ISO dates
+  synergyWith?: string[]; // IDs of workers they work well with
+  conflictsWith?: string[]; // IDs of workers they have conflicts with
 }
+
+export type JobPriority = 'high' | 'medium' | 'low';
 
 export interface Job {
   id: string;
@@ -35,6 +50,9 @@ export interface Job {
   requiredSkills: string[];
   needsGermanSpeaker: boolean;
   isWeatherDependent: boolean;
+  isRecurring: boolean;
+  priority: JobPriority;
+  estimatedDuration: string;
   notes: string;
 }
 

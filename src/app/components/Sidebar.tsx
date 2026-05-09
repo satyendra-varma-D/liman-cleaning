@@ -9,7 +9,8 @@ import {
   ChevronRight,
   ShieldCheck,
   Languages,
-  Truck
+  Truck,
+  Plane
 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 import { UserRole } from '../types';
@@ -25,11 +26,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
   const { language, setLanguage, t } = useLanguage();
 
   const menuItems = [
-    { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard, roles: ['admin', 'secretary', 'supervisor'] },
-    { id: 'jobs', label: t('jobs'), icon: Briefcase, roles: ['admin', 'secretary'] },
+    { id: 'planner', label: 'Planner', icon: LayoutDashboard, roles: ['admin', 'secretary', 'supervisor'] },
+    { id: 'dashboard', label: t('dashboard'), icon: BarChart3, roles: ['admin', 'secretary', 'supervisor'] },
+    { id: 'jobs', label: t('jobs'), icon: Briefcase, roles: ['admin', 'secretary', 'supervisor'] },
     { id: 'workers', label: t('workers'), icon: Users, roles: ['admin', 'secretary', 'supervisor'] },
     { id: 'vehicles', label: 'Vehicles', icon: Truck, roles: ['admin', 'secretary', 'supervisor'] },
-    { id: 'schedule', label: t('schedule'), icon: Calendar, roles: ['admin', 'secretary', 'supervisor'] },
+    { id: 'leaves', label: 'Leaves', icon: Plane, roles: ['admin', 'secretary', 'supervisor'] },
     { id: 'reports', label: t('reports'), icon: BarChart3, roles: ['admin'] },
   ].filter(item => item.roles.includes(userRole));
   return (

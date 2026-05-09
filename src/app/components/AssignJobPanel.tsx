@@ -115,14 +115,29 @@ export function AssignJobPanel({ worker, jobs, onAssign, onClose }: Props) {
 
   return (
     <div style={{
-      position: 'fixed', top: 0, right: 0, bottom: 0, width: 440,
-      background: 'rgba(255, 255, 255, 0.95)', 
-      backdropFilter: 'blur(10px)',
-      boxShadow: '-10px 0 40px rgba(0,0,0,0.15)',
-      zIndex: 1000, display: 'flex', flexDirection: 'column',
-      borderLeft: '1px solid rgba(255, 255, 255, 0.5)',
-      animation: 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+      position: 'fixed', inset: 0,
+      background: 'rgba(15, 23, 42, 0.6)',
+      backdropFilter: 'blur(8px)',
+      display: 'flex', justifyContent: 'center', alignItems: 'center',
+      zIndex: 1000,
+      padding: '20px',
     }}>
+      <div style={{
+        background: '#fff',
+        width: '100%', maxWidth: 500, 
+        height: 'auto', maxHeight: '90vh',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        borderRadius: 24,
+        overflow: 'hidden',
+        animation: 'modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+      }}>
+        <style>{`
+          @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+        `}</style>
       <div style={{ 
         padding: '32px 24px', 
         background: `linear-gradient(135deg, ${BLUE} 0%, #1D4ED8 100%)`, 
@@ -192,12 +207,7 @@ export function AssignJobPanel({ worker, jobs, onAssign, onClose }: Props) {
         )}
       </div>
       
-      <style>{`
-        @keyframes slideInRight {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-      `}</style>
+      </div>
     </div>
   );
 }

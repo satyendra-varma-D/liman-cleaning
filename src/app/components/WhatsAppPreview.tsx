@@ -110,22 +110,26 @@ export function WhatsAppPreview({ job, workers, onClose }: Props) {
   return (
     <div style={{
       position: 'fixed', inset: 0,
-      background: 'rgba(15, 23, 42, 0.4)',
-      backdropFilter: 'blur(4px)',
-      display: 'flex', justifyContent: 'flex-end',
+      background: 'rgba(15, 23, 42, 0.6)',
+      backdropFilter: 'blur(8px)',
+      display: 'flex', justifyContent: 'center', alignItems: 'center',
       zIndex: 1100,
+      padding: '20px',
     }}>
       <div style={{
         background: '#fff',
-        width: '100%', maxWidth: 480, height: '100%',
+        width: '100%', maxWidth: 500, 
+        height: 'auto', maxHeight: '90vh',
         display: 'flex', flexDirection: 'column',
-        boxShadow: '-20px 0 60px rgba(0,0,0,0.15)',
-        animation: 'slideIn 0.3s ease-out forwards',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        borderRadius: 24,
+        overflow: 'hidden',
+        animation: 'modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
       }}>
         <style>{`
-          @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
+          @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
           }
         `}</style>
 

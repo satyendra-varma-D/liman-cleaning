@@ -9,7 +9,7 @@ export const JOB_TYPE_COLORS: Record<JobType, { bg: string; color: string }> = {
   general: { bg: '#F8FAFC', color: '#475569' },
 };
 
-export const STATUS_OPTIONS: JobStatus[] = ['pending', 'scheduled', 'in-progress', 'completed'];
+export const STATUS_OPTIONS: JobStatus[] = ['pending', 'scheduled', 'in-progress', 'completed', 'unassigned', 'incomplete'];
 
 export const BLUE = '#2563EB'; // Premium Bright Blue
 export const ORANGE = '#F59E0B'; // Premium Amber/Orange

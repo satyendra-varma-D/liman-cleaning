@@ -77,7 +77,7 @@ export const translations = {
     active: 'Aktiv',
     inactive: 'Inaktiv',
     orderHistory: 'Auftragshistorie',
-    qualifications: 'Qualifikationen',
+    qualifications: 'Fähigkeiten',
     contactInfo: 'Kontaktinformationen',
   },
   en: {
@@ -156,7 +156,7 @@ export const translations = {
     active: 'Active',
     inactive: 'Inactive',
     orderHistory: 'Order History',
-    qualifications: 'Qualifications',
+    qualifications: 'Skills',
     contactInfo: 'Contact Information',
   }
 };

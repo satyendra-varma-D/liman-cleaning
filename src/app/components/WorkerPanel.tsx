@@ -51,100 +51,125 @@ export function WorkerPanel({ job, workers, onSave, onClose }: Props) {
 
   const isFull = selected.length >= job.workersNeeded;
 
-  const WorkerRow = ({ worker, disabled = false, suggestionReason }: { worker: Worker; disabled?: boolean; suggestionReason?: string }) => {
+  const WorkerRow = ({ worker, disabled = false, suggestionReasons }: { worker: Worker; disabled?: boolean; suggestionReasons?: string[] }) => {
     const isSelected = selected.includes(worker.id);
+    const [showAI, setShowAI] = useState(false);
+
     return (
       <div
         onClick={() => !disabled && toggle(worker.id)}
         style={{
-          display: 'flex', alignItems: 'center', gap: 14,
-          padding: '16px', borderRadius: 16,
-          border: `2px solid ${isSelected ? BLUE : suggestionReason ? '#E0E7FF' : '#F1F5F9'}`,
+          display: 'flex', flexDirection: 'column',
+          padding: '16px', borderRadius: 20,
+          border: `2px solid ${isSelected ? BLUE : suggestionReasons ? '#E0E7FF' : '#F1F5F9'}`,
           background: isSelected ? '#EFF6FF' : disabled ? '#F8FAFD' : '#fff',
           cursor: disabled ? 'not-allowed' : 'pointer',
-          opacity: disabled ? 0.6 : 1,
+          opacity: disabled ? 0.7 : 1,
           marginBottom: 12,
           transition: 'all 0.2s ease',
-          boxShadow: isSelected ? '0 4px 12px rgba(37, 99, 235, 0.08)' : 'none',
-          position: 'relative',
+          boxShadow: isSelected ? '0 8px 16px rgba(37, 99, 235, 0.08)' : 'none',
         }}
       >
-        {suggestionReason && !isSelected && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* Checkbox */}
           <div style={{
-            position: 'absolute', top: -8, right: 12,
-            background: '#6366F1', color: '#fff', fontSize: 9, fontWeight: 900,
-            padding: '2px 8px', borderRadius: 6, textTransform: 'uppercase'
+            width: 22, height: 22, borderRadius: 7, flexShrink: 0,
+            border: `2px solid ${isSelected ? BLUE : '#CBD5E1'}`,
+            background: isSelected ? BLUE : '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            Recommended
+            {isSelected && <Check size={14} color="#fff" strokeWidth={4} />}
           </div>
-        )}
 
-        {/* Checkbox */}
-        <div style={{
-          width: 24, height: 24, borderRadius: 8, flexShrink: 0,
-          border: `2px solid ${isSelected ? BLUE : '#CBD5E1'}`,
-          background: isSelected ? BLUE : '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          {isSelected && <Check size={14} color="#fff" strokeWidth={4} />}
-        </div>
-
-        {/* Avatar */}
-        <div style={{
-          width: 42, height: 42, borderRadius: 12, flexShrink: 0,
-          background: isSelected ? BLUE : '#F1F5F9',
-          color: isSelected ? '#fff' : '#64748B',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 14, fontWeight: 900,
-          border: `1px solid ${isSelected ? BLUE : '#E2E8F0'}`,
-          position: 'relative'
-        }}>
-          {worker.name[0]}
-          {worker.isSupervisor && (
-            <div title="Supervisor" style={{ position: 'absolute', bottom: -4, right: -4, background: '#16A34A', borderRadius: '50%', border: '2px solid #fff', padding: 2 }}>
-              <ShieldCheck size={10} color="#fff" />
-            </div>
-          )}
-        </div>
-
-        {/* Info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#1E293B' }}>{worker.name}</div>
-            {worker.pastCustomers.includes(job.client) && (
-              <span style={{ fontSize: 10, background: '#F0F9FF', color: '#0369A1', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>Past Exp</span>
+          {/* Avatar */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            {worker.avatar ? (
+              <img 
+                src={worker.avatar} 
+                alt={worker.name} 
+                style={{ width: 44, height: 44, borderRadius: 12, objectFit: 'cover', border: '1px solid rgba(0,0,0,0.05)' }} 
+              />
+            ) : (
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: isSelected ? BLUE : '#F1F5F9',
+                color: isSelected ? '#fff' : '#64748B',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, fontWeight: 900,
+              }}>
+                {worker.name[0]}
+              </div>
+            )}
+            {worker.isSupervisor && (
+              <div title="Supervisor" style={{ position: 'absolute', bottom: -4, right: -4, background: '#16A34A', borderRadius: '50%', border: '2px solid #fff', padding: 2 }}>
+                <ShieldCheck size={10} color="#fff" />
+              </div>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4, alignItems: 'center' }}>
-            <ReliabilityDots value={worker.reliability} />
-            <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#CBD5E1' }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B' }}>
-              {worker.languages.join(', ')}
-            </span>
-          </div>
-          {suggestionReason && (
-            <div style={{ fontSize: 11, color: '#6366F1', marginTop: 4, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Sparkles size={10} /> {suggestionReason}
+
+          {/* Info */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#1E293B' }}>{worker.name}</div>
+                {worker.pastCustomers.includes(job.client) && (
+                  <span style={{ fontSize: 9, background: '#F0F9FF', color: '#0369A1', padding: '1px 6px', borderRadius: 6, fontWeight: 800, textTransform: 'uppercase' }}>Consistently Assigned</span>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#F59E0B' }}>★</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#1E293B' }}>{worker.rating || '4.5'}</span>
+              </div>
             </div>
-          )}
+            
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4, alignItems: 'center' }}>
+              <ReliabilityDots value={worker.reliability} />
+              <div style={{ width: 3, height: 3, borderRadius: '50%', background: '#CBD5E1' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B' }}>
+                {worker.languages.join(', ')}
+              </span>
+              <div style={{ width: 3, height: 3, borderRadius: '50%', background: '#CBD5E1' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B' }}>
+                {worker.totalJobs || 0} jobs
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Badge */}
-        <div style={{ flexShrink: 0 }}>
-          {disabled ? (
-            <span style={{ fontSize: 10, color: '#DC2626', background: '#FEF2F2', borderRadius: 6, padding: '3px 8px', fontWeight: 800, textTransform: 'uppercase' }}>
-              {t('elsewhere')}
-            </span>
-          ) : isSelected ? (
-            <span style={{ fontSize: 10, color: BLUE, background: '#DBEAFE', borderRadius: 6, padding: '3px 8px', fontWeight: 800, textTransform: 'uppercase' }}>
-              Selected
-            </span>
-          ) : (
-            <span style={{ fontSize: 10, color: '#16A34A', background: '#F0FDF4', borderRadius: 6, padding: '3px 8px', fontWeight: 800, textTransform: 'uppercase' }}>
-              {t('available')}
-            </span>
-          )}
-        </div>
+        {/* AI Insight Row */}
+        {suggestionReasons && suggestionReasons.length > 0 && (
+          <div 
+            onClick={(e) => { e.stopPropagation(); setShowAI(!showAI); }}
+            style={{ 
+              marginTop: 12, 
+              background: '#F0FDF4', 
+              borderRadius: 12, 
+              padding: showAI ? '12px' : '8px 12px',
+              border: '1px solid #DCFCE7',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={12} color="#16A34A" />
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#15803D' }}>AI INSIGHT</span>
+              </div>
+              <div style={{ fontSize: 10, color: '#16A34A', fontWeight: 800 }}>
+                {showAI ? 'Close' : suggestionReasons[0]}
+              </div>
+            </div>
+            {showAI && (
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {suggestionReasons.map((r, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                    <div style={{ marginTop: 5, width: 4, height: 4, borderRadius: '50%', background: '#16A34A' }} />
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#166534', lineHeight: 1.4 }}>{r}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   };
@@ -152,22 +177,26 @@ export function WorkerPanel({ job, workers, onSave, onClose }: Props) {
   return (
     <div style={{
       position: 'fixed', inset: 0,
-      background: 'rgba(15, 23, 42, 0.4)',
-      backdropFilter: 'blur(4px)',
-      display: 'flex', justifyContent: 'flex-end',
+      background: 'rgba(15, 23, 42, 0.6)',
+      backdropFilter: 'blur(8px)',
+      display: 'flex', justifyContent: 'center', alignItems: 'center',
       zIndex: 1000,
+      padding: '20px',
     }}>
       <div style={{
         background: '#fff',
-        width: '100%', maxWidth: 520, height: '100%',
+        width: '100%', maxWidth: 700, 
+        height: 'auto', maxHeight: '90vh',
         display: 'flex', flexDirection: 'column',
-        boxShadow: '-20px 0 60px rgba(0,0,0,0.15)',
-        animation: 'slideIn 0.3s ease-out forwards',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        borderRadius: 24,
+        overflow: 'hidden',
+        animation: 'modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
       }}>
         <style>{`
-          @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
+          @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
           }
         `}</style>
 
@@ -262,7 +291,7 @@ export function WorkerPanel({ job, workers, onSave, onClose }: Props) {
                 <Sparkles size={12} /> Recommendations
               </div>
               {suggestion.recommendedTeam.map(r => (
-                <WorkerRow key={r.worker.id} worker={r.worker} suggestionReason={r.reason} />
+                <WorkerRow key={r.worker.id} worker={r.worker} suggestionReasons={r.reasons} />
               ))}
               
               {suggestion.backupWorkers.length > 0 && (

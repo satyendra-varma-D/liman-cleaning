@@ -55,6 +55,8 @@ export function JobDetail({ job, workers, vehicles, onBack, onEdit, onAssignWork
     scheduled:    { label: t('statusScheduled'),    bg: '#EFF6FF', color: '#1E40AF', bar: '#3B82F6' },
     'in-progress':{ label: t('statusInProgress'),  bg: '#FFF7ED', color: '#9A3412', bar: '#F97316' },
     completed:    { label: t('statusCompleted'),   bg: '#F0FDF4', color: '#166534', bar: '#22C55E' },
+    unassigned:   { label: 'Unassigned',           bg: '#FEF2F2', color: '#EF4444', bar: '#EF4444' },
+    incomplete:   { label: 'Incomplete',           bg: '#FFF1F2', color: '#E11D48', bar: '#E11D48' },
   };
 
   const statusConf = statusConfig[job.status];

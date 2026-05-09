@@ -1,4 +1,4 @@
-import { ChevronRight, AlertTriangle, Calendar, Users } from 'lucide-react';
+import { ChevronRight, AlertTriangle, Calendar, Users, Plus } from 'lucide-react';
 import type { Job, Worker, JobStatus, JobType } from '../types';
 import { useLanguage } from '../LanguageContext';
 import { JOB_TYPE_COLORS, STATUS_OPTIONS } from '../constants';
@@ -8,9 +8,10 @@ interface Props {
   workers: Worker[];
   onJobClick: (job: Job) => void;
   onStatusChange: (jobId: string, status: JobStatus) => void;
+  onCreateJob: () => void;
 }
 
-export function JobsList({ jobs, workers, onJobClick, onStatusChange }: Props) {
+export function JobsList({ jobs, workers, onJobClick, onStatusChange, onCreateJob }: Props) {
   const { t } = useLanguage();
 
   const jobTypeLabels: Record<JobType, string> = {
@@ -27,6 +28,8 @@ export function JobsList({ jobs, workers, onJobClick, onStatusChange }: Props) {
     scheduled:    { label: t('statusScheduled'),    bg: '#EFF6FF', color: '#1E40AF', bar: '#3B82F6' },
     'in-progress':{ label: t('statusInProgress'),  bg: '#FFF7ED', color: '#9A3412', bar: '#F97316' },
     completed:    { label: t('statusCompleted'),   bg: '#F0FDF4', color: '#166534', bar: '#22C55E' },
+    unassigned:   { label: 'Unassigned', bg: '#FEF2F2', color: '#EF4444', bar: '#EF4444' },
+    incomplete:   { label: 'Incomplete', bg: '#FFF1F2', color: '#E11D48', bar: '#E11D48' },
   };
 
   const sortedJobs = [...jobs].sort((a, b) => {
@@ -42,9 +45,22 @@ export function JobsList({ jobs, workers, onJobClick, onStatusChange }: Props) {
 
   return (
     <div style={{ marginTop: 10 }}>
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 700, color: '#0F1A2A', margin: 0 }}>{t('allJobs')}</h2>
-        <p style={{ fontSize: 14, color: '#64748B', marginTop: 4 }}>{jobs.length} {t('totalJobs')}</p>
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: '#0F1A2A', margin: 0 }}>{t('allJobs')}</h2>
+          <p style={{ fontSize: 14, color: '#64748B', marginTop: 4 }}>{jobs.length} {t('totalJobs')}</p>
+        </div>
+        <button 
+          onClick={onCreateJob}
+          style={{
+            background: '#2563EB', color: '#fff', border: 'none', borderRadius: 14,
+            padding: '12px 24px', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+            boxShadow: '0 8px 20px rgba(37, 99, 235, 0.2)', display: 'flex', alignItems: 'center', gap: 8,
+            transition: 'all 0.2s'
+          }}
+        >
+          <Plus size={18} strokeWidth={2.5} /> Create Order
+        </button>
       </div>
 
       <div style={{
