@@ -22,6 +22,7 @@ export function AddWorkerModal({ onSave, onClose }: Props) {
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['DE']);
   const [reliability, setReliability] = useState(5);
   const [pastCustomers, setPastCustomers] = useState('');
+  const [tags, setTags] = useState('');
 
   const handleSave = () => {
     if (!name) return;
@@ -37,6 +38,7 @@ export function AddWorkerModal({ onSave, onClose }: Props) {
       languages: selectedLanguages,
       reliability,
       pastCustomers: pastCustomers.split(',').map(c => c.trim()).filter(c => c !== ''),
+      tags: tags.split(',').map(t => t.trim()).filter(t => t !== ''),
       baseAvailable: true,
       totalJobs: 0,
       rating: 5.0,
@@ -238,7 +240,15 @@ export function AddWorkerModal({ onSave, onClose }: Props) {
               value={pastCustomers}
               onChange={e => setPastCustomers(e.target.value)}
               placeholder="e.g. Raiffeisen Bank, Billa, Hotel Wien"
-              style={{ ...inputStyle, height: 100, resize: 'none', paddingTop: 12 }}
+              style={{ ...inputStyle, height: 80, resize: 'none', paddingTop: 12, marginBottom: 20 }}
+            />
+
+            <Label>AI Optimization Tags (Comma separated)</Label>
+            <textarea 
+              value={tags}
+              onChange={e => setTags(e.target.value)}
+              placeholder="e.g. early-bird, heavy-lifting, industrial-specialist, polite"
+              style={{ ...inputStyle, height: 80, resize: 'none', paddingTop: 12 }}
             />
           </div>
         </div>

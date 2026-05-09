@@ -75,7 +75,7 @@ function Toggle({ active, onToggle }: { active: boolean; onToggle: () => void })
 function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons = [], onToggle }: { 
   worker: Worker; isSelected: boolean; isSuggested: boolean; matchingSkills: string[]; reasons?: string[]; onToggle: () => void 
 }) {
-  const [showAI, setShowAI] = useState(false);
+  const [showAI, setShowAI] = useState(true);
 
   return (
     <div 
@@ -171,7 +171,7 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
             </div>
             {!showAI && (
               <div style={{ fontSize: 10, color: '#16A34A', fontWeight: 800 }}>
-                {reasons[0]}
+                {reasons.find(r => r.startsWith('Tag match:')) || reasons[0]}
               </div>
             )}
           </div>
@@ -189,8 +189,8 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
         </div>
       )}
 
-      {!isSuggested && (
-        <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+      {(!isSuggested || showAI) && (
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
           {worker.skills.map(s => (
             <span key={s} style={{ 
               fontSize: 9, fontWeight: 800, padding: '2px 8px', borderRadius: 6,
@@ -201,6 +201,20 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
               {s}
             </span>
           ))}
+          {worker.tags?.map(t => {
+            const isMatch = reasons.some(r => r.toLowerCase().includes(t.toLowerCase()));
+            return (
+              <span key={t} style={{ 
+                fontSize: 9, fontWeight: 800, padding: '2px 8px', borderRadius: 6,
+                background: isMatch ? '#DCFCE7' : '#F8FAFC',
+                color: isMatch ? '#16A34A' : '#94A3B8',
+                border: isMatch ? '1px solid #BBF7D0' : 'none',
+                textTransform: 'uppercase'
+              }}>
+                #{t}
+              </span>
+            );
+          })}
         </div>
       )}
     </div>

@@ -26,7 +26,7 @@ interface Props {
 }
 
 export function WallPlanner({ jobs, workers, vehicles, currentDate: propDate, onDateChange, onJobClick, onStatusChange, onJobDrop, onCreateJob }: Props) {
-  const [viewMode, setViewMode] = useState<'month' | 'day'>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'day'>('day');
   const currentDate = useMemo(() => parseISO(propDate), [propDate]);
 
   const setCurrentDate = (date: Date) => {
@@ -270,181 +270,235 @@ export function WallPlanner({ jobs, workers, vehicles, currentDate: propDate, on
               {/* Board Header (Time Blocks) */}
               <div style={{ display: 'flex', background: '#F8FAFD', borderBottom: '1px solid #E2E8F0' }}>
                 {[
-                  '06:00 - 09:00', '09:00 - 12:00', '12:00 - 15:00', 
-                  '15:00 - 18:00', '18:00 - 21:00', '21:00 - 24:00'
+                  '06:00 - 08:00', '08:00 - 10:00', '10:00 - 12:00', 
+                  '12:00 - 14:00', '14:00 - 16:00', '16:00 - 18:00',
+                  '18:00 - 20:00', '20:00 - 22:00', '22:00 - 24:00'
                 ].map(block => (
-                  <div key={block} style={{ flex: 1, padding: '12px', textAlign: 'center', fontSize: 10, fontWeight: 900, color: '#94A3B8', letterSpacing: '0.05em', borderRight: '1px solid #E2E8F0' }}>
+                  <div key={block} style={{ flex: 1, padding: '12px', textAlign: 'center', fontSize: 11, fontWeight: 900, color: '#94A3B8', letterSpacing: '0.05em', borderRight: '1px solid #E2E8F0', minWidth: 180 }}>
                     {block}
                   </div>
                 ))}
               </div>
 
               {/* Board Body */}
-              <div style={{ flex: 1, display: 'flex', position: 'relative', overflowX: 'auto', overflowY: 'hidden', background: '#fff', backgroundImage: 'linear-gradient(#F1F5F9 1px, transparent 1px), linear-gradient(90deg, #F1F5F9 1px, transparent 1px)', backgroundSize: '100% 60px, 16.666% 100%' }}>
-                {/* Current Time Indicator Line */}
-                {isSameDay(currentDate, new Date()) && (
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    bottom: 0,
-                    left: `${((new Date().getHours() + new Date().getMinutes()/60 - 6) / 18) * 100}%`,
-                    width: 2,
-                    background: '#EF4444',
-                    zIndex: 20,
-                    pointerEvents: 'none'
-                  }}>
+              <div style={{ 
+                flex: 1, 
+                position: 'relative', 
+                overflowX: 'auto', 
+                overflowY: 'auto', 
+                background: '#fff'
+              }}>
+                {/* Background Grid Layer */}
+                <div style={{ 
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  pointerEvents: 'none',
+                  backgroundImage: `
+                    linear-gradient(90deg, #F1F5F9 1px, transparent 1px), 
+                    linear-gradient(90deg, #F8FAFD 1px, transparent 1px)
+                  `, 
+                  backgroundSize: '11.111% 100%, 2.777% 100%',
+                  minWidth: 1620, // 9 slots * 180px
+                  minHeight: '100%'
+                }} />
+
+                <div style={{ minWidth: 1620, position: 'relative', padding: '20px 0', minHeight: '100%' }}>
+                  {/* Current Time Indicator Line */}
+                  {isSameDay(currentDate, new Date()) && (
                     <div style={{
                       position: 'absolute',
                       top: 0,
-                      left: -15,
-                      width: 30,
-                      height: 8,
+                      bottom: 0,
+                      left: ((new Date().getHours() + new Date().getMinutes()/60 - 6) / 18) * 1620,
+                      width: 2,
                       background: '#EF4444',
-                      borderRadius: '0 0 10px 10px'
-                    }} />
-                    <div style={{
-                      position: 'absolute',
-                      top: 10,
-                      left: -20,
-                      background: '#EF4444',
-                      color: '#fff',
-                      fontSize: 9,
-                      fontWeight: 900,
-                      padding: '1px 6px',
-                      borderRadius: 6,
-                      whiteSpace: 'nowrap',
-                      boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+                      zIndex: 30,
+                      pointerEvents: 'none'
                     }}>
-                      {format(new Date(), 'HH:mm')}
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: -15,
+                        width: 30,
+                        height: 8,
+                        background: '#EF4444',
+                        borderRadius: '0 0 10px 10px'
+                      }} />
+                      <div style={{
+                        position: 'absolute',
+                        top: 10,
+                        left: -20,
+                        background: '#EF4444',
+                        color: '#fff',
+                        fontSize: 9,
+                        fontWeight: 900,
+                        padding: '1px 6px',
+                        borderRadius: 6,
+                        whiteSpace: 'nowrap',
+                        boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+                      }}>
+                        {format(new Date(), 'HH:mm')}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {[6, 9, 12, 15, 18, 21].map(startHour => {
-                  const endHour = startHour + 3;
-                  const blockJobs = filteredJobs.filter(j => {
-                    const jobHour = parseInt(j.time.split(':')[0]);
-                    return isSameDay(parseISO(j.date), currentDate) && jobHour >= startHour && jobHour < endHour;
-                  });
+                  {/* Render Jobs with Track Logic */}
+                  {(() => {
+                    const dayJobs = filteredJobs.filter(j => isSameDay(parseISO(j.date), currentDate));
+                    const sortedJobs = [...dayJobs].sort((a, b) => {
+                      const [ha, ma] = a.time.split(':').map(Number);
+                      const [hb, mb] = b.time.split(':').map(Number);
+                      return (ha + ma/60) - (hb + mb/60);
+                    });
 
-                  return (
-                    <div 
-                      key={startHour} 
-                      onDragOver={(e) => handleDragOver(e, format(currentDate, 'yyyy-MM-dd'), `${startHour.toString().padStart(2, '0')}:00`)}
-                      onDragLeave={() => { setDragOverDate(null); setDragOverTime(null); }}
-                      onDrop={(e) => handleDrop(e, format(currentDate, 'yyyy-MM-dd'), `${startHour.toString().padStart(2, '0')}:00`)}
-                      style={{ 
-                        flex: 1, 
-                        minWidth: 180,
-                        borderRight: '1px solid #F1F5F9',
-                        background: (dragOverDate === format(currentDate, 'yyyy-MM-dd') && dragOverTime === `${startHour.toString().padStart(2, '0')}:00`) ? '#FEF2F2' : 'transparent',
-                        padding: '12px 8px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 8,
-                        overflowY: 'auto'
-                      }}
-                    >
-                      {blockJobs.map(job => {
-                        const jobColor = job.type === 'general' ? '#10B981' : 
-                                        job.type === 'deep' ? BLUE : 
-                                        job.type === 'industrial' ? '#8B5CF6' : ORANGE;
-                        return (
-                          <div 
-                            key={job.id}
-                            onClick={() => setSelectedJobId(job.id)}
-                            style={{
-                              padding: '10px 12px',
-                              borderRadius: 12,
-                              background: job.status === 'unassigned' ? '#FFFBEB' : '#fff',
-                              border: `1px solid ${job.status === 'unassigned' ? '#F59E0B' : '#E2E8F0'}`,
-                              borderLeft: `3px solid ${jobColor}`,
-                              cursor: 'pointer',
-                              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
-                              transition: 'all 0.2s',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 2
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: 12, fontWeight: 800, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{job.client || 'New Order'}</span>
-                              <span style={{ fontSize: 10, fontWeight: 700, color: '#64748B', marginLeft: 8 }}>{job.time}</span>
-                            </div>
-                            <div style={{ fontSize: 10, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              <MapPin size={10} color={jobColor} /> {job.location || 'Location missing'}
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                              <div style={{ 
-                                fontSize: 8, fontWeight: 900, textTransform: 'uppercase', 
-                                color: jobColor, background: `${jobColor}10`, 
-                                padding: '1px 6px', borderRadius: 4 
-                              }}>
-                                {job.type}
-                              </div>
-                              {job.status === 'unassigned' && (
-                                <div style={{ fontSize: 8, fontWeight: 900, color: '#F59E0B', background: '#FFF7ED', padding: '1px 6px', borderRadius: 4 }}>UNASSIGNED</div>
-                              )}
-                            </div>
+                    const trackEndTimes: number[] = [];
+                    const hourWidth = 1620 / 18; // 90px per hour
+
+                    return sortedJobs.map(job => {
+                      const [h, m] = job.time.split(':').map(Number);
+                      const start = h + m/60;
+                      const duration = parseFloat(job.estimatedDuration) || 2;
+                      const end = start + duration;
+
+                      let trackIndex = trackEndTimes.findIndex(tEnd => tEnd <= start);
+                      if (trackIndex === -1) {
+                        trackIndex = trackEndTimes.length;
+                        trackEndTimes.push(end);
+                      } else {
+                        trackEndTimes[trackIndex] = end;
+                      }
+
+                      const jobColor = job.type === 'general' ? '#10B981' : 
+                                      job.type === 'deep' ? BLUE : 
+                                      job.type === 'industrial' ? '#8B5CF6' : ORANGE;
+
+                      return (
+                        <div 
+                          key={job.id}
+                          onClick={() => setSelectedJobId(job.id)}
+                          style={{
+                            position: 'absolute',
+                            left: (start - 6) * hourWidth + 8,
+                            width: duration * hourWidth - 16,
+                            top: trackIndex * 140 + 20, // 140px per track row
+                            padding: '12px 14px',
+                            borderRadius: 14,
+                            background: job.status === 'unassigned' ? '#FFFBEB' : '#fff',
+                            border: `1px solid ${job.status === 'unassigned' ? '#F59E0B' : '#E2E8F0'}`,
+                            borderLeft: `5px solid ${jobColor}`,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 10px rgba(0, 0, 0, 0.04)',
+                            transition: 'all 0.2s',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 4,
+                            zIndex: 20
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+                          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 13, fontWeight: 900, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{job.client || 'New Order'}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', marginLeft: 8 }}>{job.time}</span>
                           </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
+                          <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <MapPin size={12} color={jobColor} /> {job.location || 'Location missing'}
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                            <div style={{ 
+                              fontSize: 9, fontWeight: 900, textTransform: 'uppercase', 
+                              color: jobColor, background: `${jobColor}10`, 
+                              padding: '2px 8px', borderRadius: 6 
+                            }}>
+                              {job.type} ({job.estimatedDuration})
+                            </div>
+                            {job.status === 'unassigned' && (
+                              <div style={{ fontSize: 9, fontWeight: 900, color: '#F59E0B', background: '#FFF7ED', padding: '2px 8px', borderRadius: 6 }}>UNASSIGNED</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+
+                  {/* Drop Targets (Grid Columns) */}
+                  <div style={{ display: 'flex', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
+                    {[6, 8, 10, 12, 14, 16, 18, 20, 22].map(startHour => (
+                      <div 
+                        key={startHour} 
+                        onDragOver={(e) => { e.preventDefault(); setDragOverDate(format(currentDate, 'yyyy-MM-dd')); setDragOverTime(`${startHour.toString().padStart(2, '0')}:00`); }}
+                        onDrop={(e) => handleDrop(e, format(currentDate, 'yyyy-MM-dd'), `${startHour.toString().padStart(2, '0')}:00`)}
+                        style={{ 
+                          flex: 1, 
+                          minWidth: 180,
+                          pointerEvents: 'auto',
+                          background: (dragOverDate === format(currentDate, 'yyyy-MM-dd') && dragOverTime === `${startHour.toString().padStart(2, '0')}:00`) ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </div>
 
         {/* Intelligence Detail Panel (Right) */}
-        <div style={{ width: 340, background: '#fff', borderRadius: 24, border: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' }}>
-          <div style={{ padding: 24, borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#1E293B' }}>Order Intelligence</h3>
-            <button style={{ color: '#94A3B8', background: 'none', border: 'none' }}><MoreHorizontal size={20} /></button>
-          </div>
-          
-          <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-            {selectedJob ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <div style={{ background: selectedJob.status === 'unassigned' ? '#FEF2F2' : '#F8FAFD', padding: 20, borderRadius: 20, border: `1px solid ${selectedJob.status === 'unassigned' ? '#FEE2E2' : '#E2E8F0'}` }}>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                      <div style={{ fontSize: 20, fontWeight: 900, color: '#1E293B' }}>{selectedJob.client || 'New Order'}</div>
-                      {selectedJob.status === 'unassigned' && <AlertTriangle size={18} color="#EF4444" />}
-                   </div>
-                   <div style={infoItem}><CalendarIcon size={14} /> {selectedJob.date}</div>
-                   <div style={infoItem}><Clock size={14} /> {selectedJob.time} ({selectedJob.estimatedDuration})</div>
-                   <div style={infoItem}><MapPin size={14} /> {selectedJob.location || 'Assign Location'}</div>
-                   <div style={infoItem}><Briefcase size={14} /> {selectedJob.type} Cleaning</div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                   <button style={{ ...actionBtnDetail, background: BLUE, color: '#fff' }}>Assign Personnel</button>
-                   <button style={{ ...actionBtnDetail, background: '#fff', color: '#1E293B', border: '1px solid #E2E8F0' }}>Edit Order File</button>
-                   <button 
-                    onClick={() => onJobClick(selectedJob)}
-                    style={{ ...actionBtnDetail, background: '#fff', color: '#64748B', border: '1px solid #E2E8F0', fontSize: 12 }}
-                   >Full Details View</button>
-                </div>
-
-                {selectedJob.status === 'unassigned' && (
-                  <div style={{ padding: 16, borderRadius: 16, background: '#FEF2F2', border: '1px solid #FEE2E2', display: 'flex', gap: 12 }}>
-                    <Info size={16} color="#EF4444" style={{ flexShrink: 0 }} />
-                    <div style={{ fontSize: 12, color: '#991B1B', fontWeight: 600 }}>This order has not been assigned yet. Please block a time slot and allocate a team.</div>
+        {selectedJobId && (
+          <div style={{ width: 340, background: '#fff', borderRadius: 24, border: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' }}>
+            <div style={{ padding: 24, borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#1E293B' }}>Order Details</h3>
+              <button 
+                onClick={() => setSelectedJobId(null)}
+                style={{ color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                <MoreHorizontal size={20} />
+              </button>
+            </div>
+            
+            <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+              {selectedJob ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                  <div style={{ background: selectedJob.status === 'unassigned' ? '#FEF2F2' : '#F8FAFD', padding: 20, borderRadius: 20, border: `1px solid ${selectedJob.status === 'unassigned' ? '#FEE2E2' : '#E2E8F0'}` }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                        <div style={{ fontSize: 20, fontWeight: 900, color: '#1E293B' }}>{selectedJob.client || 'New Order'}</div>
+                        {selectedJob.status === 'unassigned' && <AlertTriangle size={18} color="#EF4444" />}
+                     </div>
+                     <div style={infoItem}><CalendarIcon size={14} /> {selectedJob.date}</div>
+                     <div style={infoItem}><Clock size={14} /> {selectedJob.time} ({selectedJob.estimatedDuration})</div>
+                     <div style={infoItem}><MapPin size={14} /> {selectedJob.location || 'Assign Location'}</div>
+                     <div style={infoItem}><Briefcase size={14} /> {selectedJob.type} Cleaning</div>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', paddingTop: 60, color: '#94A3B8' }}>
-                <List size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
-                <div style={{ fontSize: 14, fontWeight: 800 }}>No Order Selected</div>
-                <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>Select a calendar entry to view details</div>
-              </div>
-            )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                     <button style={{ ...actionBtnDetail, background: BLUE, color: '#fff' }}>Assign Personnel</button>
+                     <button style={{ ...actionBtnDetail, background: '#fff', color: '#1E293B', border: '1px solid #E2E8F0' }}>Edit Order File</button>
+                     <button 
+                      onClick={() => onJobClick(selectedJob)}
+                      style={{ ...actionBtnDetail, background: '#fff', color: '#64748B', border: '1px solid #E2E8F0', fontSize: 12 }}
+                     >Full Details View</button>
+                  </div>
+
+                  {selectedJob.status === 'unassigned' && (
+                    <div style={{ padding: 16, borderRadius: 16, background: '#FEF2F2', border: '1px solid #FEE2E2', display: 'flex', gap: 12 }}>
+                      <Info size={16} color="#EF4444" style={{ flexShrink: 0 }} />
+                      <div style={{ fontSize: 12, color: '#991B1B', fontWeight: 600 }}>This order has not been assigned yet. Please block a time slot and allocate a team.</div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', paddingTop: 60, color: '#94A3B8' }}>
+                  <List size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
+                  <div style={{ fontSize: 14, fontWeight: 800 }}>No Order Selected</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>Select a calendar entry to view details</div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

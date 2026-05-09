@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Edit2, Mail, Phone, Calendar as CalendarIcon, Briefcase, Star, MapPin, Clock, ChevronRight, Plus, List, Calendar, Info, AlertTriangle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Edit2, Mail, Phone, Calendar as CalendarIcon, Briefcase, Star, MapPin, Clock, ChevronRight, Plus, List, Calendar, Info, AlertTriangle, CheckCircle2, ShieldCheck, ChevronLeft } from 'lucide-react';
 import type { Worker, Job } from '../types';
 import { useLanguage } from '../LanguageContext';
 import { BLUE, ORANGE, JOB_TYPE_COLORS } from '../constants';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, parseISO, addDays, subDays } from 'date-fns';
 
 interface Props {
   worker: Worker;
@@ -16,8 +16,9 @@ interface Props {
 
 export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLeave, allWorkers }: Props) {
   const { t } = useLanguage();
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'month' | 'day'>('day');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentDay, setCurrentDay] = useState(new Date());
   const [showLeaveForm, setShowLeaveForm] = useState(false);
   const [leaveDate, setLeaveDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
@@ -36,8 +37,23 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLe
     setShowLeaveForm(false);
   };
 
+  const handlePrevDate = () => {
+    if (viewMode === 'month') setCurrentMonth(subMonths(currentMonth, 1));
+    else setCurrentDay(subDays(currentDay, 1));
+  };
+
+  const handleNextDate = () => {
+    if (viewMode === 'month') setCurrentMonth(addMonths(currentMonth, 1));
+    else setCurrentDay(addDays(currentDay, 1));
+  };
+
+  const handleToday = () => {
+    setCurrentMonth(new Date());
+    setCurrentDay(new Date());
+  };
+
   return (
-    <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', padding: '16px 24px' }}>
+    <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', padding: '16px 24px', boxSizing: 'border-box', overflowX: 'hidden' }}>
       {/* Navigation Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -100,7 +116,7 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLe
 
       <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 24, alignItems: 'start' }}>
         {/* Left Column: Profile Card */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24, minWidth: 0 }}>
           <div style={{ 
             background: '#fff', borderRadius: 24, padding: 24, border: '1px solid #F1F5F9',
             boxShadow: '0 20px 50px rgba(0,0,0,0.02)', textAlign: 'center'
@@ -146,6 +162,20 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLe
                    <span key={s} style={{ background: '#F1F5F9', color: '#475569', padding: '6px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{s}</span>
                 ))}
              </div>
+
+             {worker.tags && worker.tags.length > 0 && (
+               <>
+                 <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, color: '#1E293B' }}>AI Optimization Tags</h3>
+                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+                    {worker.tags.map(t => (
+                       <span key={t} style={{ background: '#EFF6FF', color: BLUE, padding: '6px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, border: '1px solid #DBEAFE' }}>
+                         #{t}
+                       </span>
+                    ))}
+                 </div>
+               </>
+             )}
+
              <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, color: '#1E293B' }}>Additional Info</h3>
              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: '#475569' }}>
@@ -203,7 +233,7 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLe
         </div>
 
         {/* Right Column: Deployment History / Calendar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24, minWidth: 0 }}>
           <div style={{ 
             background: '#fff', borderRadius: 24, padding: 24, border: '1px solid #F1F5F9',
             boxShadow: '0 20px 50px rgba(0,0,0,0.02)', minHeight: 600
@@ -227,16 +257,28 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLe
                   <List size={16} /> List
                 </button>
                 <button 
-                  onClick={() => setViewMode('calendar')}
+                  onClick={() => setViewMode('month')}
                   style={{ 
                     display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10,
-                    border: 'none', background: viewMode === 'calendar' ? '#fff' : 'transparent',
-                    color: viewMode === 'calendar' ? BLUE : '#64748B', fontWeight: 800, cursor: 'pointer',
-                    boxShadow: viewMode === 'calendar' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                    border: 'none', background: viewMode === 'month' ? '#fff' : 'transparent',
+                    color: viewMode === 'month' ? BLUE : '#64748B', fontWeight: 800, cursor: 'pointer',
+                    boxShadow: viewMode === 'month' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
                     fontSize: 13, transition: 'all 0.2s'
                   }}
                 >
-                  <Calendar size={16} /> Calendar
+                  <Calendar size={16} /> Month
+                </button>
+                <button 
+                  onClick={() => setViewMode('day')}
+                  style={{ 
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10,
+                    border: 'none', background: viewMode === 'day' ? '#fff' : 'transparent',
+                    color: viewMode === 'day' ? BLUE : '#64748B', fontWeight: 800, cursor: 'pointer',
+                    boxShadow: viewMode === 'day' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                    fontSize: 13, transition: 'all 0.2s'
+                  }}
+                >
+                  <CalendarIcon size={16} /> Day
                 </button>
               </div>
             </div>
@@ -280,15 +322,15 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLe
                   })
                 )}
               </div>
-            ) : (
+            ) : viewMode === 'month' ? (
               <div style={{ padding: '0 4px' }}>
                 {/* Calendar Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
                   <h4 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#1E293B' }}>{format(currentMonth, 'MMMM yyyy')}</h4>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} style={navBtnStyle}>&lt;</button>
-                    <button onClick={() => setCurrentMonth(new Date())} style={navBtnStyle}>Today</button>
-                    <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} style={navBtnStyle}>&gt;</button>
+                    <button onClick={handlePrevDate} style={navBtnStyle}><ChevronLeft size={14} /></button>
+                    <button onClick={handleToday} style={navBtnStyle}>Today</button>
+                    <button onClick={handleNextDate} style={navBtnStyle}><ChevronRight size={14} /></button>
                   </div>
                 </div>
 
@@ -340,6 +382,154 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLe
                     );
                   })}
                 </div>
+              </div>
+            ) : (
+              /* DAY VIEW */
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 500 }}>
+                {/* Calendar Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                  <h4 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#1E293B' }}>{format(currentDay, 'EEEE, dd MMM yyyy')}</h4>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={handlePrevDate} style={navBtnStyle}><ChevronLeft size={14} /></button>
+                    <button onClick={handleToday} style={navBtnStyle}>Today</button>
+                    <button onClick={handleNextDate} style={navBtnStyle}><ChevronRight size={14} /></button>
+                  </div>
+                </div>
+
+                <div style={{ 
+                  border: '1px solid #F1F5F9', 
+                  borderRadius: 24, 
+                  overflow: 'hidden', 
+                  background: '#fff',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.02)'
+                }}>
+                  <div className="custom-scrollbar" style={{ 
+                    overflowX: 'auto', 
+                    WebkitOverflowScrolling: 'touch'
+                  }}>
+                    <div style={{ minWidth: 'max-content', position: 'relative' }}>
+                      {/* Current Time Indicator Line */}
+                      {isSameDay(currentDay, new Date()) && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          bottom: 0,
+                          left: (new Date().getHours() + new Date().getMinutes()/60 - 6) * 120, // 180px per 1.5h = 120px per 1h
+                          width: 2,
+                          background: '#EF4444',
+                          zIndex: 20,
+                          pointerEvents: 'none'
+                        }}>
+                          <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: -15,
+                            width: 30,
+                            height: 8,
+                            background: '#EF4444',
+                            borderRadius: '0 0 10px 10px'
+                          }} />
+                          <div style={{
+                            position: 'absolute',
+                            top: 10,
+                            left: -20,
+                            background: '#EF4444',
+                            color: '#fff',
+                            fontSize: 9,
+                            fontWeight: 900,
+                            padding: '1px 6px',
+                            borderRadius: 6,
+                            whiteSpace: 'nowrap',
+                            boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+                          }}>
+                            {format(new Date(), 'HH:mm')}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Header */}
+                      <div style={{ display: 'flex', background: '#F8FAFD', borderBottom: '1px solid #E2E8F0' }}>
+                        {[
+                          '06:00 - 07:30', '07:30 - 09:00', '09:00 - 10:30', 
+                          '10:30 - 12:00', '12:00 - 13:30', '13:30 - 15:00',
+                          '15:00 - 16:30', '16:30 - 18:00', '18:00 - 19:30',
+                          '19:30 - 21:00', '21:00 - 22:30', '22:30 - 24:00'
+                        ].map(block => (
+                          <div key={block} style={{ width: 180, padding: '16px 12px', textAlign: 'center', fontSize: 11, fontWeight: 900, color: '#94A3B8', letterSpacing: '0.05em', borderRight: '1px solid #E2E8F0' }}>
+                            {block}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Slots */}
+                      <div style={{ display: 'flex', minHeight: 400, background: '#fff', backgroundImage: 'linear-gradient(#F8FAFD 1px, transparent 1px), linear-gradient(90deg, #F8FAFD 1px, transparent 1px)', backgroundSize: '100% 60px, 180px 100%' }}>
+                        {[6, 7.5, 9, 10.5, 12, 13.5, 15, 16.5, 18, 19.5, 21, 22.5].map(startHour => {
+                          const endHour = startHour + 1.5;
+                          const dateStr = format(currentDay, 'yyyy-MM-dd');
+                          const blockJobs = assignedJobs.filter(j => {
+                            const [h, m] = j.time.split(':').map(Number);
+                            const jobTime = h + m/60;
+                            return j.date === dateStr && jobTime >= startHour && jobTime < endHour;
+                          });
+
+                          return (
+                            <div key={startHour} style={{ width: 180, borderRight: '1px solid #F1F5F9', padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                              {blockJobs.map(job => {
+                                const jobColor = job.type === 'general' ? '#10B981' : 
+                                                job.type === 'deep' ? BLUE : 
+                                                job.type === 'industrial' ? '#8B5CF6' : ORANGE;
+                                return (
+                                  <div 
+                                    key={job.id} 
+                                    onClick={() => onJobClick(job)}
+                                    style={{ 
+                                      padding: '12px 14px', borderRadius: 12, background: '#fff', 
+                                      border: '1px solid #E2E8F0', borderLeft: `4px solid ${jobColor}`,
+                                      cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', 
+                                      transition: 'all 0.2s', display: 'flex', flexDirection: 'column', gap: 4
+                                    }}
+                                    onMouseEnter={e => {
+                                      e.currentTarget.style.transform = 'translateY(-2px)';
+                                      e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.06)';
+                                    }}
+                                    onMouseLeave={e => {
+                                      e.currentTarget.style.transform = 'translateY(0)';
+                                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+                                    }}
+                                  >
+                                    <div style={{ fontSize: 11, fontWeight: 900, color: '#64748B' }}>{job.time}</div>
+                                    <div style={{ fontSize: 14, fontWeight: 800, color: '#1E293B', lineHeight: 1.2 }}>{job.client}</div>
+                                    <div style={{ fontSize: 11, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, marginTop: 4 }}>
+                                      <MapPin size={12} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.location}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <style dangerouslySetInnerHTML={{ __html: `
+                  .custom-scrollbar::-webkit-scrollbar {
+                    height: 10px;
+                  }
+                  .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #F8FAFD;
+                    border-radius: 5px;
+                  }
+                  .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #CBD5E1;
+                    border-radius: 5px;
+                    border: 3px solid #F8FAFD;
+                  }
+                  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #94A3B8;
+                  }
+                `}} />
               </div>
             )}
           </div>
@@ -423,5 +613,8 @@ const navBtnStyle: React.CSSProperties = {
   fontWeight: 800,
   color: '#64748B',
   cursor: 'pointer',
-  transition: 'all 0.2s'
+  transition: 'all 0.2s',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center'
 };

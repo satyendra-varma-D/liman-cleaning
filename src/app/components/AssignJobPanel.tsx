@@ -21,10 +21,23 @@ export function AssignJobPanel({ worker, jobs, onAssign, onClose }: Props) {
       score += 15;
     }
 
+    let matchingTags: string[] = [];
+    const jobKeywords = `${job.client} ${job.type} ${job.notes}`.toLowerCase();
+    if (worker.tags && worker.tags.length > 0) {
+      const foundTags = worker.tags.filter(tag => {
+        const t = tag.toLowerCase();
+        return jobKeywords.includes(t) || t.split('-').some(part => part.length > 3 && jobKeywords.includes(part));
+      });
+      if (foundTags.length > 0) {
+        score += foundTags.length * 15;
+        matchingTags = foundTags;
+      }
+    }
+
     const vacancy = job.workersNeeded - job.assignedWorkers.length;
     score += vacancy * 5;
 
-    return { ...job, score, matchingSkills };
+    return { ...job, score, matchingSkills, matchingTags };
   }).sort((a, b) => b.score - a.score);
 
   const recommendations = scoredJobs.filter(j => j.score > 5);
@@ -90,8 +103,17 @@ export function AssignJobPanel({ worker, jobs, onAssign, onClose }: Props) {
             }}>
               {s}
             </span>
-          )) : (
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', padding: '4px 0' }}>No skill match</span>
+          )) : null}
+          {job.matchingTags.map(t => (
+            <span key={t} style={{ 
+              fontSize: 10, fontWeight: 800, padding: '4px 12px', borderRadius: 10,
+              background: '#F0FDF4', color: '#16A34A', border: '1px solid #DCFCE7'
+            }}>
+              #{t}
+            </span>
+          ))}
+          {job.matchingSkills.length === 0 && job.matchingTags.length === 0 && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', padding: '4px 0' }}>No match</span>
           )}
         </div>
         <div style={{ 

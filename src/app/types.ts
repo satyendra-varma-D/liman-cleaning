@@ -32,6 +32,7 @@ export interface Worker {
   leaves?: string[]; // Array of ISO dates
   synergyWith?: string[]; // IDs of workers they work well with
   conflictsWith?: string[]; // IDs of workers they have conflicts with
+  tags?: string[]; // Custom tags for AI suggestions (e.g. "early-bird", "industrial-specialist")
 }
 
 export type JobPriority = 'high' | 'medium' | 'low';

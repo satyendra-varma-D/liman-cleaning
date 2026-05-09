@@ -1,17 +1,18 @@
-import { ChevronRight, AlertTriangle, Calendar, Users, Plus } from 'lucide-react';
-import type { Job, Worker, JobStatus, JobType } from '../types';
+import { ChevronRight, AlertTriangle, Calendar, Users, Plus, Truck } from 'lucide-react';
+import type { Job, Worker, JobStatus, JobType, Vehicle } from '../types';
 import { useLanguage } from '../LanguageContext';
 import { JOB_TYPE_COLORS, STATUS_OPTIONS } from '../constants';
 
 interface Props {
   jobs: Job[];
   workers: Worker[];
+  vehicles: Vehicle[];
   onJobClick: (job: Job) => void;
   onStatusChange: (jobId: string, status: JobStatus) => void;
   onCreateJob: () => void;
 }
 
-export function JobsList({ jobs, workers, onJobClick, onStatusChange, onCreateJob }: Props) {
+export function JobsList({ jobs, workers, vehicles, onJobClick, onStatusChange, onCreateJob }: Props) {
   const { t } = useLanguage();
 
   const jobTypeLabels: Record<JobType, string> = {
@@ -66,20 +67,28 @@ export function JobsList({ jobs, workers, onJobClick, onStatusChange, onCreateJo
       <div style={{
         background: '#fff',
         borderRadius: 24,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.02)',
         overflow: 'hidden',
         border: '1px solid #F1F5F9',
+        maxWidth: 1600,
+        margin: '0 auto'
       }}>
         {/* Table header */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '120px 90px 1fr 160px 180px 160px 40px',
-          padding: '16px 24px',
+          gridTemplateColumns: '1.2fr 1fr 2.5fr 1.2fr 1fr 1.5fr 1.5fr 0.5fr',
+          padding: '18px 24px',
           background: '#F8FAFD',
           borderBottom: '1px solid #F1F5F9',
         }}>
-          {[t('date'), t('time'), t('clientLocation'), t('type'), t('workers'), t('status'), ''].map((h, i) => (
-            <div key={i} style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          {[t('date'), t('time'), t('clientLocation'), t('type'), t('workers'), 'Vehicle', t('status'), ''].map((h, i) => (
+            <div key={i} style={{ 
+              fontSize: 10, 
+              fontWeight: 900, 
+              color: '#94A3B8', 
+              letterSpacing: '0.1em', 
+              textTransform: 'uppercase' 
+            }}>
               {h}
             </div>
           ))}
@@ -98,8 +107,8 @@ export function JobsList({ jobs, workers, onJobClick, onStatusChange, onCreateJo
               onClick={() => onJobClick(job)}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '120px 90px 1fr 160px 180px 160px 40px',
-                padding: '20px 24px',
+                gridTemplateColumns: '1.2fr 1fr 2.5fr 1.2fr 1fr 1.5fr 1.5fr 0.5fr',
+                padding: '24px',
                 alignItems: 'center',
                 borderBottom: isLast ? 'none' : '1px solid #F8FAFD',
                 cursor: 'pointer',
@@ -121,8 +130,8 @@ export function JobsList({ jobs, workers, onJobClick, onStatusChange, onCreateJo
               </div>
 
               {/* Client + location */}
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>{job.client}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.client}</div>
                 <div style={{ fontSize: 13, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📍 {job.location}</div>
               </div>
 
@@ -139,18 +148,32 @@ export function JobsList({ jobs, workers, onJobClick, onStatusChange, onCreateJo
               </div>
 
               {/* Workers */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div>
                 <div style={{ 
                   display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '4px 10px', borderRadius: 8,
+                  padding: '6px 12px', borderRadius: 10,
                   background: understaffed ? '#FEF2F2' : '#F1F5F9',
-                  color: understaffed ? '#DC2626' : '#475569'
+                  color: understaffed ? '#DC2626' : '#475569',
+                  width: 'fit-content',
+                  fontSize: 13, fontWeight: 700
                 }}>
-                  {understaffed ? <AlertTriangle size={13} /> : <Users size={13} />}
-                  <span style={{ fontSize: 13, fontWeight: 700 }}>
-                    {job.assignedWorkers.length}/{job.workersNeeded}
-                  </span>
+                  {understaffed ? <AlertTriangle size={14} /> : <Users size={14} />}
+                  <span>{job.assignedWorkers.length}/{job.workersNeeded}</span>
                 </div>
+              </div>
+
+              {/* Vehicle */}
+              <div>
+                {job.assignedVehicleId ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475569' }}>
+                    <Truck size={14} style={{ color: '#3B82F6' }} />
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>
+                      {vehicles.find(v => v.id === job.assignedVehicleId)?.name || 'Unknown'}
+                    </span>
+                  </div>
+                ) : (
+                  <span style={{ fontSize: 12, color: '#94A3B8', fontStyle: 'italic' }}>No vehicle</span>
+                )}
               </div>
 
               {/* Status */}

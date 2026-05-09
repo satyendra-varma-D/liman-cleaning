@@ -54,12 +54,26 @@ export const suggestTeam = (
       score += worker.reliability * 5;
       reasons.push(`High reliability: ${worker.reliability}/5`);
     }
-    if (worker.rating && worker.rating >= 4.5) {
-      score += 10;
-      reasons.push(`Top rated: ${worker.rating}★`);
-    }
-
-    // Total Experience
+      if (worker.rating && worker.rating >= 4.5) {
+        score += 10;
+        reasons.push(`Top rated: ${worker.rating}★`);
+      }
+  
+      // Tag matches (New optimization layer)
+      if (worker.tags && worker.tags.length > 0) {
+        const jobKeywords = `${job.client} ${job.type} ${job.notes}`.toLowerCase();
+        const matchingTags = worker.tags.filter(tag => {
+          const t = tag.toLowerCase();
+          // Match full tag or any significant part (e.g. "bank" in "bank-certified")
+          return jobKeywords.includes(t) || t.split('-').some(part => part.length > 3 && jobKeywords.includes(part));
+        });
+        if (matchingTags.length > 0) {
+          score += matchingTags.length * 15;
+          reasons.push(`Tag match: ${matchingTags.map(t => `#${t}`).join(', ')}`);
+        }
+      }
+  
+      // Total Experience
     if (worker.totalJobs && worker.totalJobs > 100) {
       score += 10;
       reasons.push('Highly experienced staff');
