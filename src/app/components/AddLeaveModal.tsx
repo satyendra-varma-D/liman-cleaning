@@ -1,35 +1,68 @@
 import { useState, useMemo } from 'react';
-import { X, Calendar, User, ArrowLeft, Info, AlertTriangle, CheckCircle2, Plane, Briefcase } from 'lucide-react';
-import { format } from 'date-fns';
+import { 
+  X, Calendar, User, ArrowLeft, Info, AlertTriangle, 
+  CheckCircle2, Plane, Briefcase, ChevronRight, Search, 
+  UserPlus, UserMinus, Calendar as CalendarIcon, Clock, MapPin
+} from 'lucide-react';
+import { format, isWithinInterval, parseISO, eachDayOfInterval, isSameDay } from 'date-fns';
 import type { Worker, Job } from '../types';
 import { BLUE, ORANGE } from '../constants';
 
 interface Props {
   workers: Worker[];
   jobs: Job[];
-  onSave: (workerId: string, date: string) => void;
+  onSave: (workerId: string, startDate: string, endDate: string, reason: string) => void;
+  onReassignJob?: (jobId: string, oldWorkerId: string, newWorkerId: string) => void;
+  onUnassignJob?: (jobId: string, workerId: string) => void;
   onClose: () => void;
+  defaultWorkerId?: string | null;
 }
 
-export function AddLeaveModal({ workers, jobs, onSave, onClose }: Props) {
-  const [selectedWorkerId, setSelectedWorkerId] = useState('');
-  const [leaveDate, setLeaveDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+export function AddLeaveModal({ 
+  workers, jobs, onSave, onReassignJob, onUnassignJob, onClose, defaultWorkerId 
+}: Props) {
+  const [selectedWorkerId, setSelectedWorkerId] = useState(defaultWorkerId || '');
+  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [reason, setReason] = useState('');
+  const [bulkReassignId, setBulkReassignId] = useState('');
 
+  // Find conflicting jobs within the selected range
   const conflicts = useMemo(() => {
-    if (!selectedWorkerId || !leaveDate) return [];
-    return jobs.filter(j => 
-      j.assignedWorkers.includes(selectedWorkerId) && j.date === leaveDate
-    );
-  }, [selectedWorkerId, leaveDate, jobs]);
+    if (!selectedWorkerId || !startDate || !endDate) return [];
+    
+    const start = parseISO(startDate);
+    const end = parseISO(endDate);
+    
+    return jobs.filter(j => {
+      const jobDate = parseISO(j.date || '');
+      const isAssigned = (j.assignedWorkers || []).includes(selectedWorkerId);
+      const isInRange = isSameDay(jobDate, start) || isSameDay(jobDate, end) || 
+                        (jobDate >= start && jobDate <= end);
+      return isAssigned && isInRange;
+    });
+  }, [selectedWorkerId, startDate, endDate, jobs]);
 
   const selectedWorker = useMemo(() => 
     workers.find(w => w.id === selectedWorkerId),
     [selectedWorkerId, workers]
   );
 
+  const availableReplacementWorkers = useMemo(() => {
+    return workers.filter(w => w.id !== selectedWorkerId && w.available);
+  }, [workers, selectedWorkerId]);
+
   const handleSave = () => {
-    if (!selectedWorkerId || !leaveDate) return;
-    onSave(selectedWorkerId, leaveDate);
+    if (!selectedWorkerId || !startDate || !endDate) return;
+    onSave(selectedWorkerId, startDate, endDate, reason);
+  };
+
+  const handleBulkReassign = () => {
+    if (!bulkReassignId) return;
+    conflicts.forEach(job => {
+      onReassignJob?.(job.id, selectedWorkerId, bulkReassignId);
+    });
+    setBulkReassignId('');
   };
 
   const inputStyle: React.CSSProperties = {
@@ -46,211 +79,296 @@ export function AddLeaveModal({ workers, jobs, onSave, onClose }: Props) {
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    fontSize: 11,
-    fontWeight: 800,
-    color: '#94A3B8',
-    textTransform: 'uppercase',
+    fontSize: 12,
+    fontWeight: 700,
+    color: '#1E293B',
     marginBottom: 8,
-    letterSpacing: '0.05em'
   };
 
   return (
-    <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', padding: '16px 24px' }}>
-      {/* Top Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <button
-            onClick={onClose}
-            style={{
-              width: 44, height: 44, borderRadius: 14,
-              background: '#fff', border: '1.5px solid #F1F5F9',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', color: '#64748B', transition: 'all 0.2s',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-            }}
-          >
-            <ArrowLeft size={20} />
-          </button>
+    <div style={{ width: '100%', maxWidth: 1000, margin: '0 auto', padding: '32px' }}>
+      {/* Modal Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: '#0F172A' }}>Add leave</h1>
+          <p style={{ margin: '4px 0 0 0', color: '#64748B', fontSize: 15, fontWeight: 500 }}>
+            Add time off and manage conflicts
+          </p>
+        </div>
+        <button 
+          onClick={onClose}
+          style={{ 
+            width: 40, height: 40, borderRadius: '50%', background: 'none', border: 'none', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94A3B8' 
+          }}
+        >
+          <X size={24} />
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+        {/* Form Section */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          {/* Worker Selection */}
+          {!defaultWorkerId && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>Worker *</label>
+              <select 
+                value={selectedWorkerId}
+                onChange={e => setSelectedWorkerId(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="">Choose worker...</option>
+                {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {defaultWorkerId && (
+            <div style={{ gridColumn: '1 / -1', background: '#F8FAFD', padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 12, border: '1px solid #E2E8F0' }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: BLUE, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                {selectedWorker?.name?.[0] || '?'}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#64748B' }}>Applying leave for:</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#1E293B' }}>{selectedWorker?.name}</div>
+              </div>
+            </div>
+          )}
+
           <div>
-            <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.03em' }}>
-              Register Personnel Leave
-            </h1>
-            <p style={{ margin: '4px 0 0 0', color: '#64748B', fontSize: 14, fontWeight: 600 }}>
-              Schedule worker absence and vacation time
-            </p>
+            <label style={labelStyle}>Start date *</label>
+            <div style={{ position: 'relative' }}>
+              <input 
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>End date *</label>
+            <div style={{ position: 'relative' }}>
+              <input 
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+          </div>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>Reason *</label>
+            <textarea 
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="e.g., Personal leave, Medical leave, Vacation"
+              style={{ ...inputStyle, height: 100, resize: 'none', fontFamily: 'inherit' }}
+            />
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '12px 24px', borderRadius: 14,
-              background: '#fff', border: '1.5px solid #E2E8F0',
-              fontSize: 15, fontWeight: 700, color: '#64748B', cursor: 'pointer'
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!selectedWorkerId}
-            style={{
-              padding: '12px 32px', borderRadius: 14,
-              background: conflicts.length > 0 ? ORANGE : BLUE, 
-              color: '#fff', border: 'none',
-              fontSize: 15, fontWeight: 800, cursor: 'pointer',
-              boxShadow: `0 10px 20px ${conflicts.length > 0 ? ORANGE : BLUE}33`,
-              opacity: !selectedWorkerId ? 0.6 : 1
-            }}
-          >
-            {conflicts.length > 0 ? 'Register & Handle Conflicts' : 'Register Leave'}
-          </button>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 32 }}>
-        {/* Main Form */}
-        <div style={{ 
-          background: '#fff', borderRadius: 32, padding: 40, border: '1px solid #F1F5F9',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.02)'
-        }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-            <section>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: '#EFF6FF', color: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <User size={20} />
-                </div>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1E293B' }}>Personnel Selection</h3>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                <div>
-                  <label style={labelStyle}>Select Worker *</label>
-                  <select 
-                    value={selectedWorkerId}
-                    onChange={e => setSelectedWorkerId(e.target.value)}
-                    style={inputStyle}
-                  >
-                    <option value="">Choose worker...</option>
-                    {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Absence Date *</label>
-                  <input 
-                    type="date"
-                    value={leaveDate}
-                    onChange={e => setLeaveDate(e.target.value)}
-                    style={inputStyle}
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section style={{ paddingTop: 32, borderTop: '1px solid #F1F5F9' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: '#FEF2F2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <AlertTriangle size={20} />
-                </div>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1E293B' }}>Conflict Analysis</h3>
-              </div>
-
-              {conflicts.length > 0 ? (
-                <div style={{ background: '#FFF7ED', border: '1px solid #FFEDD5', borderRadius: 24, padding: 24 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#C2410C', fontWeight: 900, fontSize: 14, marginBottom: 16 }}>
-                    <AlertTriangle size={20} /> ACTION REQUIRED: {conflicts.length} SCHEDULE CONFLICTS
+        {/* Conflict Management Section */}
+        {selectedWorkerId && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {conflicts.length > 0 ? (
+              <>
+                {/* Conflict Alert */}
+                <div style={{ background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: 8, padding: '16px 24px', display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 24 }}>
+                  <div style={{ marginTop: 2, color: '#D97706', background: '#fff', width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #FEF3C7' }}>
+                    <Info size={14} />
                   </div>
-                  <p style={{ margin: '0 0 20px 0', fontSize: 14, color: '#9A3412', fontWeight: 600, lineHeight: 1.6 }}>
-                    This worker is already assigned to the following jobs on this day. You must reassign these jobs if you register this leave.
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {conflicts.map(j => (
-                      <div key={j.id} style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#fff', padding: '16px', borderRadius: 16, border: '1px solid #FFEDD5', boxShadow: '0 4px 12px rgba(194, 65, 12, 0.05)' }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Briefcase size={18} color={ORANGE} />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: '#1E293B' }}>{j.client}</div>
-                          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>{j.time} · {j.location}</div>
-                        </div>
-                      </div>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#92400E' }}>{conflicts.length} conflicting orders found</div>
+                    <div style={{ fontSize: 13, color: '#B45309', fontWeight: 600, marginTop: 4 }}>
+                      The following orders are scheduled during your leave. Reassign or cancel them.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bulk Action */}
+                <div style={{ background: '#E0F2FE', border: '1px solid #BAE6FD', borderRadius: 12, padding: '24px', marginBottom: 32 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, color: '#0369A1' }}>
+                    <UserPlus size={18} />
+                    <span style={{ fontSize: 15, fontWeight: 700 }}>Assign all to one worker</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ ...labelStyle, fontSize: 13, color: '#1E293B' }}>Select worker</label>
+                      <select 
+                        style={{ ...inputStyle, background: '#fff' }}
+                        value={bulkReassignId}
+                        onChange={e => setBulkReassignId(e.target.value)}
+                      >
+                        <option value="">Select worker</option>
+                        {availableReplacementWorkers.map(w => (
+                          <option key={w.id} value={w.id}>{w.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button 
+                      onClick={handleBulkReassign}
+                      disabled={!bulkReassignId}
+                      style={{ 
+                        height: 48, padding: '0 24px', borderRadius: 10, 
+                        background: '#0369A1', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer',
+                        opacity: bulkReassignId ? 1 : 0.6, fontSize: 15
+                      }}
+                    >
+                      Assign to all
+                    </button>
+                  </div>
+                </div>
+
+                {/* Individual Actions */}
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1E293B', marginBottom: 16 }}>Or assign individually</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {conflicts.map((job, idx) => (
+                      <ConflictCard 
+                        key={job.id} 
+                        job={job} 
+                        oldWorkerId={selectedWorkerId}
+                        workers={availableReplacementWorkers}
+                        onReassign={(newWorkerId) => onReassignJob?.(job.id, selectedWorkerId, newWorkerId)}
+                        onCancel={() => onUnassignJob?.(job.id, selectedWorkerId)}
+                        workload={idx === 0 ? "10/12" : idx === 1 ? "3/12" : null}
+                      />
                     ))}
                   </div>
                 </div>
-              ) : selectedWorkerId ? (
-                <div style={{ background: '#F0FDF4', border: '1px solid #DCFCE7', borderRadius: 24, padding: 24, display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <CheckCircle2 size={24} color="#16A34A" />
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#15803D' }}>Zero Conflicts Detected</div>
-                    <div style={{ fontSize: 13, color: '#166534', fontWeight: 600, marginTop: 2 }}>Worker is fully available for this date.</div>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ padding: '40px', textAlign: 'center', border: '2px dashed #F1F5F9', borderRadius: 24 }}>
-                  <User size={32} style={{ color: '#CBD5E1', marginBottom: 12, opacity: 0.5 }} />
-                  <div style={{ fontSize: 14, color: '#94A3B8', fontWeight: 600 }}>Select a worker and date to analyze conflicts</div>
-                </div>
-              )}
-            </section>
-          </div>
-        </div>
-
-        {/* Live Summary Sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ 
-            background: BLUE, borderRadius: 32, padding: 32, color: '#fff',
-            boxShadow: '0 20px 40px rgba(37, 99, 235, 0.15)'
-          }}>
-            <h4 style={{ margin: 0, fontSize: 18, fontWeight: 800, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Info size={20} /> Leave Summary
-            </h4>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900 }}>
-                  {selectedWorker?.name[0] || '?'}
-                </div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 800 }}>{selectedWorker?.name || 'Unselected'}</div>
-                  <div style={{ fontSize: 11, opacity: 0.8, fontWeight: 700 }}>ID: {selectedWorker?.id || '—'}</div>
-                </div>
+              </>
+            ) : (
+              <div style={{ background: '#F0FDF4', border: '1px solid #DCFCE7', borderRadius: 12, padding: '20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <CheckCircle2 size={20} color="#16A34A" />
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#15803D' }}>Zero conflicts detected for the selected period.</div>
               </div>
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
-              <SummaryRow label="Date" value={leaveDate} />
-              <SummaryRow label="Conflicts" value={conflicts.length.toString()} highlight={conflicts.length > 0} />
-              <SummaryRow label="Type" value="VACATION" />
-            </div>
-
-            <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Plane size={24} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 800 }}>Absence Registered</div>
-                  <div style={{ fontSize: 11, opacity: 0.8, fontWeight: 600 }}>Auto-updates planner</div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
+        )}
+
+        {/* Footer Actions */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, paddingTop: 32, borderTop: '1px solid #F1F5F9' }}>
+           <button 
+            onClick={onClose}
+            style={{ padding: '12px 24px', borderRadius: 12, background: '#fff', border: '1px solid #E2E8F0', fontWeight: 700, color: '#64748B', cursor: 'pointer' }}
+           >Cancel</button>
+           <button 
+            onClick={handleSave}
+            disabled={!selectedWorkerId || conflicts.length > 0}
+            style={{ 
+              padding: '12px 32px', borderRadius: 12, background: BLUE, color: '#fff', border: 'none', 
+              fontWeight: 800, cursor: 'pointer', opacity: (!selectedWorkerId || conflicts.length > 0) ? 0.6 : 1,
+              boxShadow: `0 10px 20px ${BLUE}33`
+            }}
+           >
+            Save Leave
+           </button>
         </div>
       </div>
     </div>
   );
 }
 
-function SummaryRow({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
+function ConflictCard({ job, oldWorkerId, workers, onReassign, onCancel, workload }: { 
+  job: Job; 
+  oldWorkerId: string; 
+  workers: Worker[]; 
+  onReassign: (newWorkerId: string) => void;
+  onCancel: () => void;
+  workload?: string | null;
+}) {
+  const [selectedWorker, setSelectedWorker] = useState('');
+  const [isDone, setIsDone] = useState(false);
+  const [reassignedTo, setReassignedTo] = useState<string | null>(null);
+
+  const handleReassign = () => {
+    if (!selectedWorker) return;
+    onReassign(selectedWorker);
+    const worker = workers.find(w => w.id === selectedWorker);
+    setReassignedTo(worker?.name || '');
+    setIsDone(true);
+  };
+
+  const handleCancel = () => {
+    onCancel();
+    setIsDone(true);
+    setReassignedTo('Unassigned');
+  };
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <span style={{ fontSize: 13, opacity: 0.7, fontWeight: 600 }}>{label}</span>
-      <span style={{ 
-        fontSize: 14, fontWeight: 800, 
-        color: highlight ? '#fff' : '#fff',
-        background: highlight ? '#EF4444' : 'transparent',
-        padding: highlight ? '4px 8px' : '0',
-        borderRadius: highlight ? '6px' : '0'
-      }}>{value}</span>
+    <div style={{ 
+      background: '#fff', border: '1px solid #F1F5F9', borderRadius: 12, padding: '24px',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.02)', position: 'relative'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr', gap: 24, flex: 1 }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8', marginBottom: 4 }}>Client name</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#1E293B' }}>{job.client}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8', marginBottom: 4 }}>Date & time</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#1E293B' }}>{job.date ? format(parseISO(job.date), 'MMM dd, yyyy') : 'N/A'}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#1E293B' }}>{job.type} Cleaning</div>
+            {workload && (
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', marginTop: 4 }}>
+                {workload} jobs assigned
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {isDone && (
+        <div style={{ 
+          background: '#DCFCE7', padding: '10px 16px', borderRadius: 10, 
+          display: 'inline-flex', alignItems: 'center', gap: 8, color: '#16A34A', 
+          fontSize: 14, fontWeight: 800, border: '1.5px solid #BBF7D0',
+          marginBottom: 16
+        }}>
+          <User size={16} /> Reassigned to {reassignedTo}
+        </div>
+      )}
+
+      {!isDone && (
+        <>
+          <div style={{ height: 1.5, background: '#F1F5F9', marginBottom: 20 }} />
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', display: 'block', marginBottom: 8 }}>Reassign to</label>
+              <select 
+                style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontWeight: 600, outline: 'none', background: '#F8FAFD' }}
+                value={selectedWorker}
+                onChange={e => setSelectedWorker(e.target.value)}
+              >
+                <option value="">Select worker</option>
+                {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                onClick={handleReassign}
+                disabled={!selectedWorker}
+                style={{ padding: '12px 24px', borderRadius: 10, background: '#0369A1', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer', opacity: selectedWorker ? 1 : 0.6, fontSize: 14 }}
+              >
+                Reassign
+              </button>
+              <button 
+                onClick={handleCancel}
+                style={{ padding: '12px 24px', borderRadius: 10, background: '#fff', color: '#EF4444', border: '1.5px solid #FEE2E2', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

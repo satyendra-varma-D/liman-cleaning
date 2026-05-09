@@ -55,6 +55,11 @@ export interface Job {
   priority: JobPriority;
   estimatedDuration: string;
   notes: string;
+  risk?: {
+    type: 'weather' | 'personnel' | 'other';
+    description: string;
+    level: 'high' | 'medium';
+  };
 }
 
 export type UserRole = 'admin' | 'secretary' | 'supervisor';

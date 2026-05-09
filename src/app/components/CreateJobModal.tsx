@@ -72,8 +72,8 @@ function Toggle({ active, onToggle }: { active: boolean; onToggle: () => void })
   );
 }
 
-function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons = [], onToggle }: { 
-  worker: Worker; isSelected: boolean; isSuggested: boolean; matchingSkills: string[]; reasons?: string[]; onToggle: () => void 
+function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons = [], onToggle, workload }: { 
+  worker: Worker; isSelected: boolean; isSuggested: boolean; matchingSkills: string[]; reasons?: string[]; onToggle: () => void; workload?: string | null;
 }) {
   const [showAI, setShowAI] = useState(true);
 
@@ -134,7 +134,9 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
           <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
             <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{worker.totalJobs || 0} jobs</div>
             <div style={{ width: 3, height: 3, borderRadius: '50%', background: '#CBD5E1' }} />
-            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{worker.reliability}/5 rel.</div>
+            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>
+              {workload ? `${workload} jobs assigned` : `${worker.reliability}/5 rel.`}
+            </div>
           </div>
         </div>
 
@@ -167,7 +169,7 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Sparkles size={12} color="#16A34A" />
-              <span style={{ fontSize: 11, fontWeight: 800, color: '#15803D' }}>AI INSIGHT</span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#15803D', textTransform: 'uppercase' }}>Parameters Matched</span>
             </div>
             {!showAI && (
               <div style={{ fontSize: 10, color: '#16A34A', fontWeight: 800 }}>
@@ -385,40 +387,9 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 12 }}>
-          {step === 'workers' && (
-            <button
-              onClick={() => setStep('details')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                background: '#fff', border: '1.5px solid #E2E8F0',
-                borderRadius: 14, padding: '12px 24px',
-                cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#1E293B',
-              }}
-            >
-              <ChevronLeft size={18} /> Back to Details
-            </button>
-          )}
-          <button
-            onClick={handleSubmit}
-            disabled={step === 'details' ? (!client.trim() || !location.trim()) : assignedWorkers.length < 1}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              background: step === 'details' ? BLUE : '#16A34A',
-              color: '#fff', border: 'none',
-              borderRadius: 14, padding: '12px 24px',
-              cursor: 'pointer', fontSize: 15, fontWeight: 700,
-              boxShadow: `0 10px 20px ${step === 'details' ? 'rgba(37, 99, 235, 0.2)' : 'rgba(22, 163, 74, 0.2)'}`,
-              opacity: (step === 'details' ? (!client.trim() || !location.trim()) : assignedWorkers.length < 1) ? 0.6 : 1
-            }}
-          >
-            {step === 'details' ? 'Next: Select Workers' : 'Confirm & Schedule Order'} 
-            {step === 'details' && <ChevronRight size={18} />}
-          </button>
-        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: step === 'details' ? '1fr 380px' : '1fr', gap: 24, alignItems: 'start' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'stretch' }}>
         {/* Main Content Area */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {step === 'details' ? (
@@ -675,7 +646,7 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
                     </h3>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20 }}>
-                    {suggestionResults.recommendedTeam.map(({ worker, reasons }) => (
+                    {suggestionResults.recommendedTeam.map(({ worker, reasons }, index) => (
                       <WorkerCard 
                         key={worker.id}
                         worker={worker}
@@ -687,6 +658,7 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
                           if (assignedWorkers.includes(worker.id)) setAssignedWorkers(prev => prev.filter(id => id !== worker.id));
                           else setAssignedWorkers(prev => [...prev, worker.id]);
                         }}
+                        workload={index === 0 ? "10/12" : index === 1 ? "3/12" : null}
                       />
                     ))}
                   </div>
@@ -725,35 +697,47 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
           )}
         </div>
 
-        {/* Sidebar Info Card (Only in Details step) */}
-        {step === 'details' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <div style={{ 
-              background: BLUE, borderRadius: 24, padding: 24, color: '#fff',
-              boxShadow: '0 20px 40px rgba(37, 99, 235, 0.15)'
-            }}>
-              <h4 style={{ margin: 0, fontSize: 16, fontWeight: 800, marginBottom: 16 }}>Live Summary</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <SummaryItem label="Personnel" value={`${workersNeeded} Workers`} />
-                <SummaryItem label="Language" value="German Mandatory" />
-                <SummaryItem label="Priority" value={priority.toUpperCase()} />
-                <SummaryItem label="Recurring" value={isRecurring ? 'Yes' : 'No'} />
-              </div>
-            </div>
-
-            <div style={{ 
-              background: '#FEF2F2', borderRadius: 24, padding: 24, border: '1px solid #FEE2E2',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <AlertTriangle size={18} color="#DC2626" />
-                <h4 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#991B1B' }}>Important</h4>
-              </div>
-              <p style={{ margin: 0, fontSize: 13, color: '#991B1B', lineHeight: 1.5, fontWeight: 600 }}>
-                Ensure all required skills are selected to get the best worker matches in the next step.
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Modal Footer with Action Buttons */}
+        <div style={{ 
+          marginTop: 40, 
+          paddingTop: 32, 
+          borderTop: '1px solid #F1F5F9',
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 16
+        }}>
+          {step === 'workers' && (
+            <button
+              onClick={() => setStep('details')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: '#fff', border: '1.5px solid #E2E8F0',
+                borderRadius: 14, padding: '12px 28px',
+                cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#1E293B',
+                transition: 'all 0.2s'
+              }}
+            >
+              <ChevronLeft size={18} /> Back to Details
+            </button>
+          )}
+          <button
+            onClick={handleSubmit}
+            disabled={step === 'details' ? (!client.trim() || !location.trim()) : assignedWorkers.length < 1}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: step === 'details' ? BLUE : '#16A34A',
+              color: '#fff', border: 'none',
+              borderRadius: 14, padding: '12px 32px',
+              cursor: 'pointer', fontSize: 15, fontWeight: 800,
+              boxShadow: `0 10px 25px ${step === 'details' ? 'rgba(37, 99, 235, 0.25)' : 'rgba(22, 163, 74, 0.25)'}`,
+              opacity: (step === 'details' ? (!client.trim() || !location.trim()) : assignedWorkers.length < 1) ? 0.6 : 1,
+              transition: 'all 0.2s'
+            }}
+          >
+            {step === 'details' ? 'Next: Select Workers' : 'Confirm & Schedule Order'} 
+            {step === 'details' && <ChevronRight size={18} />}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -10,7 +10,7 @@ interface Props {
   assignedJobs: Job[];
   onBack: () => void;
   onJobClick: (job: Job) => void;
-  onAddLeave: (workerId: string, date: string) => void;
+  onAddLeave: () => void;
   allWorkers: Worker[];
 }
 
@@ -19,23 +19,16 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLe
   const [viewMode, setViewMode] = useState<'list' | 'month' | 'day'>('day');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentDay, setCurrentDay] = useState(new Date());
-  const [showLeaveForm, setShowLeaveForm] = useState(false);
-  const [leaveDate, setLeaveDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-  // Calculate stats
-  const attendancePercentage = 96; // Prototype value
-  const inconsistencyScore = 4; // Prototype value (percentage of late/no-shows)
+  // Performance metrics
+  const attendancePercentage = 96; 
+  const inconsistencyScore = 4;
 
   const monthDays = useMemo(() => {
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
     return eachDayOfInterval({ start, end });
   }, [currentMonth]);
-
-  const handleAddLeave = () => {
-    onAddLeave(worker.id, leaveDate);
-    setShowLeaveForm(false);
-  };
 
   const handlePrevDate = () => {
     if (viewMode === 'month') setCurrentMonth(subMonths(currentMonth, 1));
@@ -77,7 +70,7 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLe
 
         <div style={{ display: 'flex', gap: 12 }}>
           <button
-            onClick={() => setShowLeaveForm(true)}
+            onClick={onAddLeave}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
               background: '#FEF2F2', border: '1.5px solid #FEE2E2',
@@ -536,25 +529,6 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLe
         </div>
       </div>
 
-      {/* Leave Modal */}
-      {showLeaveForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: '#fff', padding: 32, borderRadius: 24, width: 400, boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ margin: '0 0 24px 0', fontSize: 20, fontWeight: 900, color: '#1E293B' }}>Register Leave</h3>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', marginBottom: 8 }}>Select Date</label>
-            <input 
-              type="date" 
-              value={leaveDate}
-              onChange={e => setLeaveDate(e.target.value)}
-              style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1.5px solid #E2E8F0', outline: 'none', marginBottom: 24, fontSize: 15, fontWeight: 600 }}
-            />
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={() => setShowLeaveForm(false)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid #E2E8F0', background: '#fff', fontWeight: 800, cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleAddLeave} style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: '#DC2626', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Confirm Leave</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

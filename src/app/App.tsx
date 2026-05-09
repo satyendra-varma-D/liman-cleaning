@@ -66,21 +66,24 @@ const INITIAL_JOBS: Job[] = [
     date: today, time: '13:00', workersNeeded: 2, assignedWorkers: [],
     type: 'general', status: 'unassigned', notes: '',
     requiredSkills: ['general'], needsGermanSpeaker: false, 
-    isWeatherDependent: false, isRecurring: false, priority: 'medium', estimatedDuration: '3h'
+    isWeatherDependent: true, isRecurring: false, priority: 'medium', estimatedDuration: '3h',
+    risk: { type: 'weather', description: 'Heavy Snow Fall Forecasted', level: 'high' }
   },
   {
     id: 'j5', client: 'Privat: Familie Berger', location: 'Sieveringer Str. 44, 1190 Wien',
     date: today, time: '14:30', workersNeeded: 1, assignedWorkers: ['w3'],
     type: 'special', status: 'incomplete', notes: 'Needs follow-up for hard water stains',
     requiredSkills: ['special'], needsGermanSpeaker: true, 
-    isWeatherDependent: false, isRecurring: false, priority: 'medium', estimatedDuration: '2h'
+    isWeatherDependent: false, isRecurring: false, priority: 'medium', estimatedDuration: '2h',
+    risk: { type: 'personnel', description: 'Assigned Worker (Mihai) called in sick', level: 'high' }
   },
   {
-    id: 'u2', client: '', location: '',
+    id: 'u2', client: 'New Order', location: '',
     date: today, time: '10:00', workersNeeded: 2, assignedWorkers: [],
     type: 'general', status: 'unassigned', notes: '',
     requiredSkills: ['general'], needsGermanSpeaker: false, 
-    isWeatherDependent: false, isRecurring: false, priority: 'high', estimatedDuration: '2h'
+    isWeatherDependent: true, isRecurring: false, priority: 'high', estimatedDuration: '2h',
+    risk: { type: 'weather', description: 'Light Rain (30% probability)', level: 'medium' }
   }
 ];
 
@@ -173,12 +176,18 @@ export default function App() {
     setActiveModule('workers');
   };
 
-  const handleAddLeave = (workerId: string, date: string) => {
+  const handleAddLeave = (workerId: string, startDate: string, endDate: string, reason: string) => {
+    const dates = eachDayOfInterval({ start: parseISO(startDate), end: parseISO(endDate) })
+      .map(d => format(d, 'yyyy-MM-dd'));
+      
     setWorkerPool(prev => prev.map(w => 
       w.id === workerId 
-        ? { ...w, leaves: [...(w.leaves || []), date] } 
+        ? { ...w, leaves: Array.from(new Set([...(w.leaves || []), ...dates])) } 
         : w
     ));
+    setView('board');
+    setActiveModule('leaves');
+    setDefaultWorkerId(null);
   };
 
   const handleRemoveLeave = (workerId: string, date: string) => {
@@ -191,10 +200,6 @@ export default function App() {
 
   const handleAddVehicle = (newVehicle: Omit<Vehicle, 'status'>) => {
     setVehicles(prev => [...prev, { ...newVehicle, status: 'available' }]);
-  };
-
-  const handleMoveJob = (jobId: string, newDate: string) => {
-    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, date: newDate } : j));
   };
 
   const handleStatusChange = (jobId: string, status: JobStatus) => {
@@ -242,11 +247,6 @@ export default function App() {
     setSelectedAssignVehicleId(null);
   };
 
-  const handleAddWorker = (newWorker: Omit<Worker, 'available'>) => {
-    // In this prototype, we'll just close it
-    setShowAddWorkerModal(false);
-  };
-
   const handleAssignWorkers = (jobId: string, workerIds: string[]) => {
     setJobs(prev => prev.map(j => j.id === jobId ? { ...j, assignedWorkers: workerIds } : j));
     setShowWorkerPanel(false);
@@ -256,7 +256,6 @@ export default function App() {
     setJobs(prev => prev.map(j => j.id === jobId ? { ...j, assignedVehicleId: vehicleId || undefined } : j));
     setVehicles(prev => prev.map(v => {
       if (v.id === vehicleId) return { ...v, status: 'assigned' };
-      // If it was assigned to this job, free it
       const oldJob = jobs.find(j => j.id === jobId);
       if (oldJob?.assignedVehicleId === v.id && vehicleId !== v.id) return { ...v, status: 'available' };
       return v;
@@ -272,13 +271,38 @@ export default function App() {
     setView('board');
     setSelectedJobId(null);
     setSelectedWorkerId(null);
+    setDefaultWorkerId(null);
   };
 
   const handleModuleChange = (module: string) => {
     setActiveModule(module);
-    setView('board'); // Reset to board view when switching modules
+    setView('board');
     setSelectedJobId(null);
     setSelectedWorkerId(null);
+  };
+
+  const handleReassignJob = (jobId: string, oldWorkerId: string, newWorkerId: string) => {
+    setJobs(prev => prev.map(j => {
+      if (j.id === jobId) {
+        return {
+          ...j,
+          assignedWorkers: [...j.assignedWorkers.filter(id => id !== oldWorkerId), newWorkerId]
+        };
+      }
+      return j;
+    }));
+  };
+
+  const handleUnassignJob = (jobId: string, workerId: string) => {
+    setJobs(prev => prev.map(j => {
+      if (j.id === jobId) {
+        return {
+          ...j,
+          assignedWorkers: j.assignedWorkers.filter(id => id !== workerId)
+        };
+      }
+      return j;
+    }));
   };
 
   const handleJobDrop = (job: Job, newDate: string, newTime?: string) => {
@@ -300,7 +324,6 @@ export default function App() {
       setModalInitialStep('details');
     }
     
-    // Use a small timeout to ensure the drop event completes before opening the modal
     setTimeout(() => {
       setView('edit-job');
     }, 50);
@@ -362,7 +385,7 @@ export default function App() {
           assignedJobs={assignedJobs} 
           onBack={handleBack} 
           onJobClick={handleJobClick}
-          onAddLeave={handleAddLeave}
+          onAddLeave={() => { setDefaultWorkerId(selectedWorker.id); setView('add-leave'); }}
           allWorkers={allWorkers}
         />
       );
@@ -372,19 +395,6 @@ export default function App() {
         <div style={{ background: '#fff', borderRadius: 32, padding: '20px 0', minHeight: '80vh', boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
           <AddWorkerModal 
             onSave={handleSaveWorker} 
-            onClose={handleBack} 
-          />
-        </div>
-      );
-    }
-    if (view === 'create-job') {
-      return (
-        <div style={{ background: '#fff', borderRadius: 32, padding: '20px 0', minHeight: '80vh', boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
-          <CreateJobModal 
-            job={null} 
-            defaultDate={selectedDate}
-            workers={allWorkers}
-            onSave={handleSaveJob} 
             onClose={handleBack} 
           />
         </div>
@@ -406,8 +416,11 @@ export default function App() {
           <AddLeaveModal 
             workers={allWorkers}
             jobs={jobs}
-            onSave={(wId, date) => { handleAddLeave(wId, date); setView('board'); }} 
+            onSave={handleAddLeave} 
+            onReassignJob={handleReassignJob}
+            onUnassignJob={handleUnassignJob}
             onClose={handleBack} 
+            defaultWorkerId={defaultWorkerId}
           />
         </div>
       );
@@ -417,14 +430,39 @@ export default function App() {
       case 'planner':
         return (
           <WallPlanner 
-            jobs={jobs} 
-            workers={allWorkers} 
-            vehicles={vehicles} 
+            jobs={filteredJobs}
+            workers={allWorkers}
+            vehicles={vehicles}
             currentDate={selectedDate}
             onDateChange={setSelectedDate}
-            onJobClick={handleJobClick}
+            onAddLeave={() => { setDefaultWorkerId(null); setView('add-leave'); }}
+            onJobClick={(job) => {
+              setSelectedJobId(job.id);
+              setEditingJob(job);
+              setModalInitialStep('details');
+              setView('edit-job');
+            }}
+            onAssignWorkers={(job) => {
+              setSelectedJobId(job.id);
+              setEditingJob(job);
+              setModalInitialStep('workers');
+              setView('edit-job');
+            }}
+            onAssignVehicle={(job) => {
+            setSelectedJobId(job.id);
+            setEditingJob(job);
+            setShowAssignVehiclePanel(true);
+            setSelectedAssignVehicleId(null);
+          }}
+          onReschedule={(job) => {
+              setSelectedJobId(job.id);
+              setEditingJob(job);
+              setModalInitialStep('details');
+              setView('edit-job');
+            }}
             onStatusChange={handleStatusChange}
             onJobDrop={handleJobDrop}
+            onAddVehicle={() => setView('add-vehicle')}
             onCreateJob={() => { setEditingJob(null); setModalInitialStep('details'); setView('create-job'); }}
           />
         );
@@ -461,8 +499,8 @@ export default function App() {
           <Leaves 
             workers={allWorkers} 
             jobs={jobs} 
-            onAddLeave={() => setView('add-leave')} 
-            onRemoveLeave={handleRemoveLeave} 
+            onAddLeave={() => { setDefaultWorkerId(null); setView('add-leave'); }}
+            onRemoveLeave={handleRemoveLeave}
           />
         );
       case 'settings':
