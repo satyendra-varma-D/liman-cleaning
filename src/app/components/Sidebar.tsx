@@ -28,12 +28,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
   const { language, setLanguage, t } = useLanguage();
 
   const menuItems = [
-    { id: 'planner', label: 'Planner', icon: LayoutDashboard, roles: ['admin', 'secretary', 'supervisor'] },
-    { id: 'dashboard', label: t('dashboard'), icon: BarChart3, roles: ['admin', 'secretary', 'supervisor'] },
-    { id: 'jobs', label: t('jobs'), icon: Briefcase, roles: ['admin', 'secretary', 'supervisor'] },
-    { id: 'workers', label: t('workers'), icon: Users, roles: ['admin', 'secretary', 'supervisor'] },
-    { id: 'vehicles', label: 'Vehicles', icon: Truck, roles: ['admin', 'secretary', 'supervisor'] },
-    { id: 'leaves', label: 'Leaves', icon: Plane, roles: ['admin', 'secretary', 'supervisor'] },
+    { id: 'planner', label: 'Planner', icon: LayoutDashboard, roles: ['admin', 'secretary'] },
+    { id: 'dashboard', label: t('dashboard'), icon: BarChart3, roles: ['admin', 'secretary'] },
+    { id: 'jobs', label: t('jobs'), icon: Briefcase, roles: ['admin', 'secretary'] },
+    { id: 'workers', label: t('workers'), icon: Users, roles: ['admin', 'secretary'] },
+    { id: 'vehicles', label: 'Vehicles', icon: Truck, roles: ['admin', 'secretary'] },
+    { id: 'leaves', label: 'Leaves', icon: Plane, roles: ['admin', 'secretary'] },
     { id: 'reports', label: t('reports'), icon: BarChart3, roles: ['admin'] },
   ].filter(item => item.roles.includes(userRole));
   return (

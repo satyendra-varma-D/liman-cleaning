@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { format } from 'date-fns';
+import { format, eachDayOfInterval, parseISO } from 'date-fns';
 import { DailyBoard } from './components/DailyBoard';
 import { CreateJobModal } from './components/CreateJobModal';
 import { WorkerPanel } from './components/WorkerPanel';
@@ -97,6 +97,7 @@ import { Leaves } from './components/Leaves';
 import { WallPlanner } from './components/WallPlanner';
 import { AddVehicleModal } from './components/AddVehicleModal';
 import { AddLeaveModal } from './components/AddLeaveModal';
+import { AssignVehicleToJobModal } from './components/AssignVehicleToJobModal';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -121,17 +122,14 @@ export default function App() {
   const [selectedAssignVehicleId, setSelectedAssignVehicleId] = useState<string | null>(null);
   const [showAddWorkerModal, setShowAddWorkerModal] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showAssignVehicleToJobModal, setShowAssignVehicleToJobModal] = useState(false);
 
   const selectedJob = useMemo(() => jobs.find(j => j.id === selectedJobId) ?? null, [jobs, selectedJobId]);
 
   const filteredJobs = useMemo(() => {
     let list = jobs.filter(j => j.date === selectedDate);
-    if (userRole === 'supervisor') {
-      // Prototype: Maria Huber (w1) is the logged-in supervisor
-      list = list.filter(j => j.assignedWorkers.includes('w1'));
-    }
     return list.sort((a, b) => a.time.localeCompare(b.time));
-  }, [jobs, selectedDate, userRole]);
+  }, [jobs, selectedDate]);
 
   const busyWorkerIds = useMemo(() => {
     const busy = new Set<string>();
@@ -449,11 +447,9 @@ export default function App() {
               setView('edit-job');
             }}
             onAssignVehicle={(job) => {
-            setSelectedJobId(job.id);
-            setEditingJob(job);
-            setShowAssignVehiclePanel(true);
-            setSelectedAssignVehicleId(null);
-          }}
+              setSelectedJobId(job.id);
+              setShowAssignVehicleToJobModal(true);
+            }}
           onReschedule={(job) => {
               setSelectedJobId(job.id);
               setEditingJob(job);
@@ -519,7 +515,6 @@ export default function App() {
             onWorkerClick={handleWorkerClick}
             onReschedule={handleReschedule}
             onCreateJob={() => { setEditingJob(null); setView('create-job'); }}
-            userRole={userRole}
           />
         );
     }
@@ -624,6 +619,17 @@ export default function App() {
                 />
               </div>
             </div>
+          )}
+          {showAssignVehicleToJobModal && selectedJob && (
+            <AssignVehicleToJobModal
+              job={selectedJob}
+              vehicles={vehicles}
+              onAssign={(jobId, vId) => {
+                handleAssignVehicle(jobId, vId);
+                setShowAssignVehicleToJobModal(false);
+              }}
+              onClose={() => setShowAssignVehicleToJobModal(false)}
+            />
           )}
 
         </div>

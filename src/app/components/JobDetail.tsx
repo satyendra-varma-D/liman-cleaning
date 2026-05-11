@@ -97,7 +97,6 @@ export function JobDetail({ job, workers, vehicles, onBack, onEdit, onAssignWork
         </div>
 
         <div style={{ display: 'flex', gap: 12 }}>
-          {userRole !== 'supervisor' && (
             <button
               onClick={onEdit}
               style={{
@@ -110,7 +109,6 @@ export function JobDetail({ job, workers, vehicles, onBack, onEdit, onAssignWork
             >
               <Edit2 size={18} /> {t('edit')}
             </button>
-          )}
           <button
             onClick={onWhatsApp}
             style={{
@@ -305,15 +303,14 @@ export function JobDetail({ job, workers, vehicles, onBack, onEdit, onAssignWork
           }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{t('status')}</div>
             <select
-              disabled={userRole === 'supervisor'}
               value={job.status}
               onChange={e => onStatusChange(job.id, e.target.value as JobStatus)}
               style={{
                 width: '100%', padding: '16px', borderRadius: 16, border: 'none',
                 background: statusConf.bg, color: statusConf.color,
-                fontSize: 16, fontWeight: 700, cursor: userRole === 'supervisor' ? 'default' : 'pointer',
+                fontSize: 16, fontWeight: 700, cursor: 'pointer',
                 appearance: 'none', textAlign: 'center', boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.02)',
-                opacity: userRole === 'supervisor' ? 0.8 : 1
+                opacity: 1
               }}
             >
               {STATUS_OPTIONS.map(s => (
@@ -329,13 +326,12 @@ export function JobDetail({ job, workers, vehicles, onBack, onEdit, onAssignWork
           }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Vehicle Assignment</div>
             <select
-              disabled={userRole === 'supervisor'}
               value={job.assignedVehicleId ?? ''}
               onChange={e => onAssignVehicle(job.id, e.target.value)}
               style={{
                 width: '100%', padding: '14px', borderRadius: 14, border: '1.5px solid #E2E8F0',
-                background: userRole === 'supervisor' ? '#F8FAFD' : '#fff', color: '#1E293B',
-                fontSize: 14, fontWeight: 700, cursor: userRole === 'supervisor' ? 'default' : 'pointer'
+                background: '#fff', color: '#1E293B',
+                fontSize: 14, fontWeight: 700, cursor: 'pointer'
               }}
             >
               <option value="">No vehicle</option>

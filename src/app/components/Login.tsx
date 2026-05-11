@@ -23,8 +23,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     
     if (emailLower.includes('office') || emailLower.includes('secretary')) {
       inferredRole = 'secretary';
-    } else if (emailLower.includes('maria') || emailLower.includes('supervisor')) {
-      inferredRole = 'supervisor';
     }
     
     onLogin(inferredRole);
@@ -120,11 +118,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-xl border border-slate-200">
                   <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Secretary</span>
                   <div className="text-[11px] font-mono text-slate-600">office@liman.at / secretary123</div>
-                </div>
-                
-                <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-xl border border-slate-200">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Supervisor</span>
-                  <div className="text-[11px] font-mono text-slate-600">maria@liman.at / supervisor123</div>
                 </div>
               </div>
               <p className="text-[9px] text-slate-400 text-center italic">Any email/password will work for this prototype.</p>

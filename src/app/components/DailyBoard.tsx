@@ -17,10 +17,9 @@ interface Props {
   onWorkerClick: (worker: Worker) => void;
   onReschedule: (job: Job) => void;
   onCreateJob: () => void;
-  userRole: UserRole;
 }
 
-export function DailyBoard({ jobs, workers, vehicles, onJobClick, onStatusChange, onUnassignWorker, onAssignWorker, onWorkerClick, onReschedule, onCreateJob, userRole }: Props) {
+export function DailyBoard({ jobs, workers, vehicles, onJobClick, onStatusChange, onUnassignWorker, onAssignWorker, onWorkerClick, onReschedule, onCreateJob }: Props) {
   const { t, language } = useLanguage();
   const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'map'>('kanban');
   const [selectedWorkerFilter, setSelectedWorkerFilter] = useState<'total' | 'available' | 'busy' | 'not-available' | null>('available');

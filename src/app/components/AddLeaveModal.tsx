@@ -52,8 +52,15 @@ export function AddLeaveModal({
     return workers.filter(w => w.id !== selectedWorkerId && w.available);
   }, [workers, selectedWorkerId]);
 
+  const isDateError = useMemo(() => {
+    if (!startDate || !endDate) return false;
+    return parseISO(endDate) < parseISO(startDate);
+  }, [startDate, endDate]);
+
+  const canSave = selectedWorkerId && startDate && endDate && reason && conflicts.length === 0 && !isDateError;
+
   const handleSave = () => {
-    if (!selectedWorkerId || !startDate || !endDate) return;
+    if (!canSave) return;
     onSave(selectedWorkerId, startDate, endDate, reason);
   };
 
@@ -143,7 +150,7 @@ export function AddLeaveModal({
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                style={inputStyle}
+                style={{ ...inputStyle, borderColor: isDateError ? '#EF4444' : '#E2E8F0' }}
               />
             </div>
           </div>
@@ -155,10 +162,16 @@ export function AddLeaveModal({
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
-                style={inputStyle}
+                style={{ ...inputStyle, borderColor: isDateError ? '#EF4444' : '#E2E8F0' }}
               />
             </div>
           </div>
+
+          {isDateError && (
+            <div style={{ gridColumn: '1 / -1', color: '#EF4444', fontSize: 13, fontWeight: 600, marginTop: -12 }}>
+              End date cannot be earlier than start date.
+            </div>
+          )}
 
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={labelStyle}>Reason *</label>
@@ -214,7 +227,7 @@ export function AddLeaveModal({
                       disabled={!bulkReassignId}
                       style={{ 
                         height: 48, padding: '0 24px', borderRadius: 10, 
-                        background: '#0369A1', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer',
+                        background: '#0369A1', color: '#fff', border: 'none', fontWeight: 700, cursor: bulkReassignId ? 'pointer' : 'not-allowed',
                         opacity: bulkReassignId ? 1 : 0.6, fontSize: 15
                       }}
                     >
@@ -258,11 +271,12 @@ export function AddLeaveModal({
            >Cancel</button>
            <button 
             onClick={handleSave}
-            disabled={!selectedWorkerId || conflicts.length > 0}
+            disabled={!canSave}
             style={{ 
               padding: '12px 32px', borderRadius: 12, background: BLUE, color: '#fff', border: 'none', 
-              fontWeight: 800, cursor: 'pointer', opacity: (!selectedWorkerId || conflicts.length > 0) ? 0.6 : 1,
-              boxShadow: `0 10px 20px ${BLUE}33`
+              fontWeight: 800, cursor: canSave ? 'pointer' : 'not-allowed', 
+              opacity: canSave ? 1 : 0.5,
+              boxShadow: canSave ? `0 10px 20px ${BLUE}33` : 'none'
             }}
            >
             Save Leave

@@ -116,6 +116,59 @@ export function WallPlanner({
     if (time) setDragOverTime(time);
   };
 
+  const toggleBtn: React.CSSProperties = {
+    padding: '8px 16px',
+    borderRadius: 10,
+    fontSize: 13,
+    fontWeight: 700,
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  };
+
+  const navBtn: React.CSSProperties = {
+    background: 'none',
+    border: 'none',
+    padding: 6,
+    cursor: 'pointer',
+    color: '#64748B',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  };
+
+  const searchInput: React.CSSProperties = {
+    width: '100%',
+    background: '#fff',
+    border: '1px solid #E2E8F0',
+    borderRadius: 12,
+    padding: '10px 12px 10px 38px',
+    fontSize: 13,
+    fontWeight: 600,
+    outline: 'none',
+    color: '#1E293B'
+  };
+
+  const actionBtnDetail: React.CSSProperties = {
+    width: '100%',
+    padding: '14px',
+    borderRadius: 14,
+    fontSize: 14,
+    fontWeight: 800,
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  };
+
+  const infoItem: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: 700
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 40px)', gap: 0, background: '#F8FAFD', padding: 20 }}>
       {/* Header Toolbar */}
@@ -596,28 +649,28 @@ export function WallPlanner({
                       });
                     })()}
 
-                  {/* Drop Targets (Grid Columns) */}
-                  <div style={{ display: 'flex', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
-                    {[6, 8, 10, 12, 14, 16, 18, 20, 22].map(startHour => (
-                      <div 
-                        key={startHour} 
-                        onDragOver={(e) => { e.preventDefault(); setDragOverDate(format(currentDate, 'yyyy-MM-dd')); setDragOverTime(`${startHour.toString().padStart(2, '0')}:00`); }}
-                        onDrop={(e) => handleDrop(e, format(currentDate, 'yyyy-MM-dd'), `${startHour.toString().padStart(2, '0')}:00`)}
-                        style={{ 
-                          flex: 1, 
-                          minWidth: 180,
-                          pointerEvents: 'auto',
-                          background: (dragOverDate === format(currentDate, 'yyyy-MM-dd') && dragOverTime === `${startHour.toString().padStart(2, '0')}:00`) ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
-                        }}
-                      />
-                    ))}
+                    {/* Drop Targets (Grid Columns) */}
+                    <div style={{ display: 'flex', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
+                      {[6, 8, 10, 12, 14, 16, 18, 20, 22].map(startHour => (
+                        <div 
+                          key={startHour} 
+                          onDragOver={(e) => { e.preventDefault(); setDragOverDate(format(currentDate, 'yyyy-MM-dd')); setDragOverTime(`${startHour.toString().padStart(2, '0')}:00`); }}
+                          onDrop={(e) => handleDrop(e, format(currentDate, 'yyyy-MM-dd'), `${startHour.toString().padStart(2, '0')}:00`)}
+                          style={{ 
+                            flex: 1, 
+                            minWidth: 180,
+                            pointerEvents: 'auto',
+                            background: (dragOverDate === format(currentDate, 'yyyy-MM-dd') && dragOverTime === `${startHour.toString().padStart(2, '0')}:00`) ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
+                          }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
         {/* Intelligence Detail Panel (Right) */}
         {selectedJobId && (
@@ -728,25 +781,15 @@ export function WallPlanner({
                              </button>
                            </>
                          ) : (
-                           <>
-                             <button style={{ 
-                               flex: 1, padding: '10px', borderRadius: 12, 
-                               background: '#fff', border: `1.5px solid ${selectedJob.risk.level === 'high' ? '#FEE2E2' : '#FEF3C7'}`,
-                               color: selectedJob.risk.level === 'high' ? '#EF4444' : '#D97706',
-                               fontSize: 12, fontWeight: 900, cursor: 'pointer'
-                             }}>
-                               Override
-                             </button>
-                             <button 
-                               onClick={() => onReschedule?.(selectedJob)}
-                               style={{ 
-                               flex: 1, padding: '10px', borderRadius: 12, 
-                               background: selectedJob.risk.level === 'high' ? '#EF4444' : '#F59E0B', 
-                               color: '#fff', fontSize: 12, fontWeight: 900, border: 'none', cursor: 'pointer'
-                             }}>
-                               Reschedule Order
-                             </button>
-                           </>
+                           <button 
+                             onClick={() => onReschedule?.(selectedJob)}
+                             style={{ 
+                             width: '100%', padding: '10px', borderRadius: 12, 
+                             background: selectedJob.risk.level === 'high' ? '#EF4444' : '#F59E0B', 
+                             color: '#fff', fontSize: 12, fontWeight: 900, border: 'none', cursor: 'pointer'
+                           }}>
+                             Reschedule Order
+                           </button>
                          )}
                        </div>
                      </div>
@@ -764,22 +807,19 @@ export function WallPlanner({
                              </button>
                            )}
                            {!selectedJob.assignedVehicleId && (
-                             <div style={{ display: 'flex', gap: 12 }}>
-                               <button 
-                                 onClick={() => onAssignVehicle?.(selectedJob)}
-                                 style={{ ...actionBtnDetail, flex: 1, background: ORANGE, color: '#fff', boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)' }}
-                               >
-                                 Assign Vehicle
-                               </button>
-                               <button 
-                                 onClick={onAddVehicle}
-                                 style={{ ...actionBtnDetail, flex: 1, background: '#fff', color: ORANGE, border: `1.5px solid ${ORANGE}` }}
-                               >
-                                 Register Vehicle
-                               </button>
-                             </div>
+                             <button 
+                               onClick={() => onAssignVehicle?.(selectedJob)}
+                               style={{ ...actionBtnDetail, width: '100%', background: ORANGE, color: '#fff', boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)' }}
+                             >
+                               Assign Vehicle
+                             </button>
                            )}
-                           <button style={{ ...actionBtnDetail, background: '#fff', color: '#1E293B', border: '1px solid #E2E8F0' }}>View Order File</button>
+                           <button 
+                             onClick={() => onJobClick(selectedJob)}
+                             style={{ ...actionBtnDetail, background: '#fff', color: '#1E293B', border: '1px solid #E2E8F0' }}
+                           >
+                             View Order Details
+                           </button>
                          </>
                        ) : (
                          <button 
@@ -806,29 +846,17 @@ export function WallPlanner({
   );
 }
 
-function FilterSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (val: string) => void }) {
-  const [isOpen, setIsOpen] = useState(false);
+function FilterSelect({ label, value, options, onChange }: { label: string, value: string, options: string[], onChange: (v: string) => void }) {
   return (
-    <div style={{ position: 'relative' }}>
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        style={{ background: '#fff', border: '1px solid #E2E8F0', padding: '8px 12px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#1E293B', cursor: 'pointer' }}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', padding: '6px 12px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' }}>{label}</span>
+      <select 
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{ border: 'none', background: 'none', fontSize: 13, fontWeight: 800, color: '#1E293B', outline: 'none', cursor: 'pointer' }}
       >
-        {value || label} <ChevronDown size={14} color="#94A3B8" />
-      </div>
-      {isOpen && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 10, marginTop: 4, zIndex: 100, minWidth: 160, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-          {options.map(opt => (
-            <div key={opt} onClick={() => { onChange(opt); setIsOpen(false); }} style={{ padding: '10px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', background: value === opt ? '#F1F5F9' : '#fff' }}>{opt}</div>
-          ))}
-        </div>
-      )}
+        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+      </select>
     </div>
   );
 }
-
-const toggleBtn: React.CSSProperties = { padding: '6px 16px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' };
-const navBtn: React.CSSProperties = { background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', display: 'flex', alignItems: 'center' };
-const searchInput: React.CSSProperties = { width: '100%', padding: '10px 12px 10px 36px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 13, fontWeight: 600, outline: 'none' };
-const infoItem: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#475569', fontWeight: 600, marginBottom: 8 };
-const actionBtnDetail: React.CSSProperties = { width: '100%', padding: '12px', borderRadius: 14, border: 'none', fontSize: 13, fontWeight: 900, cursor: 'pointer' };

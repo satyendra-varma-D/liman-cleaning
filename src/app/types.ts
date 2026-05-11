@@ -62,4 +62,4 @@ export interface Job {
   };
 }
 
-export type UserRole = 'admin' | 'secretary' | 'supervisor';
+export type UserRole = 'admin' | 'secretary';

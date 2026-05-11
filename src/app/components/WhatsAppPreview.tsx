@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Job, Worker, JobType } from '../types';
 import { BLUE } from '../constants';
+import { useLanguage } from '../LanguageContext';
 
 const JOB_TYPE_LABELS = (t: any): Record<JobType, string> => ({
   window: t('windowCleaning'),
@@ -93,6 +94,7 @@ function WaLine({ text }: { text: string }) {
 export function WhatsAppPreview({ job, workers, onClose }: Props) {
   const { t, language } = useLanguage();
   const [copied, setCopied] = useState(false);
+  const [isSent, setIsSent] = useState(false);
   const assignedWorkers = workers.filter(w => job.assignedWorkers.includes(w.id));
   const message = buildMessage(job, assignedWorkers, t, language);
   const lines = message.split('\n');
@@ -105,6 +107,16 @@ export function WhatsAppPreview({ job, workers, onClose }: Props) {
     } catch {
       /* clipboard not available */
     }
+  };
+
+  const handleSend = () => {
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+    setIsSent(true);
+    setTimeout(() => {
+      setIsSent(false);
+      onClose();
+    }, 2000);
   };
 
   return (
@@ -125,13 +137,41 @@ export function WhatsAppPreview({ job, workers, onClose }: Props) {
         borderRadius: 24,
         overflow: 'hidden',
         animation: 'modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        position: 'relative'
       }}>
         <style>{`
           @keyframes modalFadeIn {
             from { opacity: 0; transform: translateY(20px) scale(0.95); }
             to { opacity: 1; transform: translateY(0) scale(1); }
           }
+          @keyframes checkBounce {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+          }
         `}</style>
+
+        {/* Success Overlay */}
+        {isSent && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 50,
+            background: 'rgba(255,255,255,0.95)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(4px)',
+            animation: 'modalFadeIn 0.3s ease'
+          }}>
+            <div style={{
+              width: 80, height: 80, borderRadius: '50%',
+              background: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', marginBottom: 20,
+              animation: 'checkBounce 0.5s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}>
+              <Check size={40} strokeWidth={3} />
+            </div>
+            <h3 style={{ fontSize: 22, fontWeight: 800, color: '#1E293B', margin: 0 }}>Message Sent!</h3>
+            <p style={{ fontSize: 15, color: '#64748B', marginTop: 8, fontWeight: 600 }}>WhatsApp has been opened</p>
+          </div>
+        )}
 
         {/* Header */}
         <div style={{
@@ -199,11 +239,26 @@ export function WhatsAppPreview({ job, workers, onClose }: Props) {
         </div>
 
         {/* Actions */}
-        <div style={{ padding: '24px 32px', display: 'flex', gap: 12, background: '#fff', borderTop: '1px solid #F1F5F9' }}>
+        <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 12, background: '#fff', borderTop: '1px solid #F1F5F9' }}>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button
+              onClick={handleCopy}
+              style={{
+                flex: 1, padding: '14px',
+                border: '1.5px solid #CBD5E1', borderRadius: 12,
+                background: '#fff', cursor: 'pointer',
+                fontSize: 15, fontWeight: 700, color: '#475569',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                transition: 'all 0.2s'
+              }}
+            >
+              {copied ? <Check size={18} color="#16A34A" /> : <Copy size={18} />}
+              {copied ? (language === 'de' ? 'Kopiert!' : 'Copied!') : t('copyMessage')}
+            </button>
             <button
               onClick={onClose}
               style={{
-                flex: 1, padding: '14px',
+                padding: '14px 20px',
                 border: '1.5px solid #CBD5E1', borderRadius: 12,
                 background: '#fff', cursor: 'pointer',
                 fontSize: 15, fontWeight: 700, color: '#475569',
@@ -211,21 +266,24 @@ export function WhatsAppPreview({ job, workers, onClose }: Props) {
             >
               {t('cancel')}
             </button>
-            <button
-              onClick={handleCopy}
-              style={{
-                flex: 2, padding: '14px',
-                border: 'none', borderRadius: 12,
-                background: copied ? '#16A34A' : '#25D366',
-                color: '#fff', cursor: 'pointer',
-                fontSize: 15, fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: copied ? '0 10px 20px rgba(22,163,74,0.2)' : '0 10px 20px rgba(37,211,102,0.2)',
-              }}
-            >
-              {copied ? <><Check size={18} strokeWidth={3} /> {language === 'de' ? 'Kopiert!' : 'Copied!'}</> : <><Copy size={18} strokeWidth={3} /> {t('copyMessage')}</>}
-            </button>
+          </div>
+          
+          <button
+            onClick={handleSend}
+            style={{
+              width: '100%', padding: '16px',
+              border: 'none', borderRadius: 12,
+              background: '#25D366',
+              color: '#fff', cursor: 'pointer',
+              fontSize: 16, fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 10px 25px rgba(37,211,102,0.3)',
+            }}
+          >
+            <MessageCircle size={20} fill="#fff" />
+            Send via WhatsApp
+          </button>
         </div>
       </div>
     </div>
