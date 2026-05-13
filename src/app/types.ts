@@ -63,3 +63,19 @@ export interface Job {
 }
 
 export type UserRole = 'admin' | 'secretary';
+
+export type AttendanceStatus = 'present' | 'absent' | 'late' | 'not-set';
+
+export interface AttendanceRecord {
+  workerId: string;
+  date: string;
+  status: AttendanceStatus;
+  note?: string;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  location: string;
+  mobile: string;
+}

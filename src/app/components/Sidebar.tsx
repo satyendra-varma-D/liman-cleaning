@@ -1,3 +1,4 @@
+import React from 'react';
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -7,10 +8,10 @@ import {
   Settings, 
   LogOut,
   ChevronRight,
-  ShieldCheck,
-  Languages,
+  UserCheck,
   Truck,
-  Plane
+  Plane,
+  ShieldCheck
 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 import { UserRole } from '../types';
@@ -29,6 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
 
   const menuItems = [
     { id: 'planner', label: 'Planner', icon: LayoutDashboard, roles: ['admin', 'secretary'] },
+    { id: 'clients', label: 'Clients', icon: UserCheck, roles: ['admin'] },
     { id: 'dashboard', label: t('dashboard'), icon: BarChart3, roles: ['admin', 'secretary'] },
     { id: 'jobs', label: t('jobs'), icon: Briefcase, roles: ['admin', 'secretary'] },
     { id: 'workers', label: t('workers'), icon: Users, roles: ['admin', 'secretary'] },

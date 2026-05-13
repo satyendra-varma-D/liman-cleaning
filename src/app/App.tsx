@@ -1,4 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { Client } from './types';
+import ClientsList from './components/ClientsList';
+import ClientModal from './components/ClientModal';
 import { format, eachDayOfInterval, parseISO } from 'date-fns';
 import { DailyBoard } from './components/DailyBoard';
 import { CreateJobModal } from './components/CreateJobModal';
@@ -12,8 +15,20 @@ import { AssignJobPanel } from './components/AssignJobPanel';
 import { AssignVehiclePanel } from './components/AssignVehiclePanel';
 import { AddWorkerModal } from './components/AddWorkerModal';
 import { LanguageProvider } from './LanguageContext';
+import { Attendance } from './components/Attendance';
+import { JobsList } from './components/JobsList';
+import { WorkersList } from './components/WorkersList';
+import { Schedule } from './components/Schedule';
+import { Reports } from './components/Reports';
+import { Settings } from './components/Settings';
+import { VehiclesList } from './components/VehiclesList';
+import { Leaves } from './components/Leaves';
+import { WallPlanner } from './components/WallPlanner';
+import { AddVehicleModal } from './components/AddVehicleModal';
+import { AddLeaveModal } from './components/AddLeaveModal';
+import { AssignVehicleToJobModal } from './components/AssignVehicleToJobModal';
 
-import { JobType, JobStatus, Worker, Job, Vehicle, UserRole } from './types';
+import { JobType, JobStatus, Worker, Job, Vehicle, UserRole, AttendanceRecord, AttendanceStatus } from './types';
 
 const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -78,7 +93,7 @@ const INITIAL_JOBS: Job[] = [
     risk: { type: 'personnel', description: 'Assigned Worker (Mihai) called in sick', level: 'high' }
   },
   {
-    id: 'u2', client: 'New Order', location: '',
+    id: 'u2', client: 'Spar Supermarkt', location: '',
     date: today, time: '10:00', workersNeeded: 2, assignedWorkers: [],
     type: 'general', status: 'unassigned', notes: '',
     requiredSkills: ['general'], needsGermanSpeaker: false, 
@@ -86,18 +101,6 @@ const INITIAL_JOBS: Job[] = [
     risk: { type: 'weather', description: 'Light Rain (30% probability)', level: 'medium' }
   }
 ];
-
-import { JobsList } from './components/JobsList';
-import { WorkersList } from './components/WorkersList';
-import { Schedule } from './components/Schedule';
-import { Reports } from './components/Reports';
-import { Settings } from './components/Settings';
-import { VehiclesList } from './components/VehiclesList';
-import { Leaves } from './components/Leaves';
-import { WallPlanner } from './components/WallPlanner';
-import { AddVehicleModal } from './components/AddVehicleModal';
-import { AddLeaveModal } from './components/AddLeaveModal';
-import { AssignVehicleToJobModal } from './components/AssignVehicleToJobModal';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -122,7 +125,67 @@ export default function App() {
   const [selectedAssignVehicleId, setSelectedAssignVehicleId] = useState<string | null>(null);
   const [showAddWorkerModal, setShowAddWorkerModal] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showAssignVehicleToJobModal, setShowAssignVehicleToJobModal] = useState(false);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  // Persistence
+  useEffect(() => {
+    const savedClients = localStorage.getItem('liman_clients');
+    if (savedClients) {
+      try {
+        setClients(JSON.parse(savedClients));
+      } catch (e) {
+        console.error('Failed to parse clients', e);
+      }
+    } else {
+      // Demo Clients
+      setClients([
+        { id: 'c1', name: 'Raiffeisen Bank AG', location: 'Mariahilfer Str. 77, Vienna', mobile: '+43 1 717070' },
+        { id: 'c2', name: 'Schulgebäude BRG 6', location: 'Amerlingstraße 6, 1060 Wien', mobile: '+43 1 5873155' },
+        { id: 'c3', name: 'Spar Supermarkt', location: 'Thaliastraße 120, 1160 Wien', mobile: '+43 1 4861511' },
+        { id: 'c4', name: 'Hotel Erzherzog Johann', location: 'Graben 25, 1010 Wien', mobile: '+43 1 5124117' },
+        { id: 'c5', name: 'Billa Markt Ottakring', location: 'Ottakringer Str. 120, 1160 Wien', mobile: '+43 1 4861511' },
+      ]);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('liman_clients', JSON.stringify(clients));
+  }, [clients]);
+
+  // Client handlers
+  const handleAddClient = (client: Omit<Client, 'id'>) => {
+    const newClient: Client = { ...client, id: `c${Date.now()}` };
+    setClients(prev => [...prev, newClient]);
+  };
+  const handleUpdateClient = (updated: Client) => {
+    setClients(prev => prev.map(c => (c.id === updated.id ? updated : c)));
+  };
+  const handleDeleteClient = (id: string) => {
+    setClients(prev => prev.filter(c => c.id !== id));
+  };
+
+  const handleUpdateAttendance = (date: string, workerId: string, status: AttendanceStatus) => {
+    setAttendanceRecords(prev => {
+      const existing = prev.findIndex(r => r.date === date && r.workerId === workerId);
+      if (existing >= 0) {
+        const next = [...prev];
+        next[existing] = { ...next[existing], status };
+        return next;
+      }
+      return [...prev, { date, workerId, status }];
+    });
+  };
+
+  const handleUpdateAllAttendance = (date: string, status: AttendanceStatus) => {
+    setAttendanceRecords(prev => {
+      const filtered = prev.filter(r => r.date !== date);
+      const newRecords = workerPool.map(w => ({ date, workerId: w.id, status }));
+      return [...filtered, ...newRecords];
+    });
+  };
 
   const selectedJob = useMemo(() => jobs.find(j => j.id === selectedJobId) ?? null, [jobs, selectedJobId]);
 
@@ -133,29 +196,32 @@ export default function App() {
 
   const busyWorkerIds = useMemo(() => {
     const busy = new Set<string>();
-    filteredJobs.forEach(j => j.assignedWorkers.forEach(id => busy.add(id)));
+    jobs.forEach(j => {
+      (j.assignedWorkers || []).forEach(id => busy.add(id));
+    });
     return busy;
-  }, [filteredJobs]);
+  }, [jobs]);
 
-  const allWorkers: Worker[] = useMemo(
-    () => workerPool.map(w => ({ ...w, available: w.baseAvailable && !busyWorkerIds.has(w.id) })),
-    [busyWorkerIds, workerPool],
-  );
+  const allWorkers = useMemo(() => {
+    return workerPool.map(w => ({
+      ...w,
+      available: w.baseAvailable && !busyWorkerIds.has(w.id)
+    }));
+  }, [workerPool, busyWorkerIds]);
 
   const selectedWorker = useMemo(() => allWorkers.find(w => w.id === selectedWorkerId) ?? null, [allWorkers, selectedWorkerId]);
-
 
   const workersForPanel: Worker[] = useMemo(() => {
     if (!selectedJobId) return allWorkers;
     const otherBusy = new Set<string>();
     filteredJobs
       .filter(j => j.id !== selectedJobId)
-      .forEach(j => j.assignedWorkers.forEach(id => otherBusy.add(id)));
+      .forEach(j => (j.assignedWorkers || []).forEach(id => otherBusy.add(id)));
     return workerPool.map(w => ({
       ...w,
       available: w.baseAvailable && !otherBusy.has(w.id),
     }));
-  }, [filteredJobs, selectedJobId, workerPool]);
+  }, [filteredJobs, selectedJobId, workerPool, allWorkers]);
 
   const handleSaveJob = (data: Omit<Job, 'id'> & { id?: string }) => {
     if (data.id) {
@@ -165,7 +231,6 @@ export default function App() {
     }
     setView('board');
     setEditingJob(null);
-    // Removed redirect to 'jobs' module to stay on planner
   };
 
   const handleSaveWorker = (newWorker: Omit<Worker, 'available'>) => {
@@ -207,7 +272,7 @@ export default function App() {
   const handleUnassignWorker = (workerId: string, jobId: string) => {
     setJobs(prev => prev.map(j => 
       j.id === jobId 
-        ? { ...j, assignedWorkers: j.assignedWorkers.filter(id => id !== workerId) } 
+        ? { ...j, assignedWorkers: (j.assignedWorkers || []).filter(id => id !== workerId) } 
         : j
     ));
   };
@@ -219,8 +284,8 @@ export default function App() {
 
   const handleAssignWorkerToJob = (jobId: string, workerId: string) => {
     setJobs(prev => prev.map(j => {
-      if (j.id === jobId && !j.assignedWorkers.includes(workerId)) {
-        return { ...j, assignedWorkers: [...j.assignedWorkers, workerId] };
+      if (j.id === jobId && !(j.assignedWorkers || []).includes(workerId)) {
+        return { ...j, assignedWorkers: [...(j.assignedWorkers || []), workerId] };
       }
       return j;
     }));
@@ -284,7 +349,7 @@ export default function App() {
       if (j.id === jobId) {
         return {
           ...j,
-          assignedWorkers: [...j.assignedWorkers.filter(id => id !== oldWorkerId), newWorkerId]
+          assignedWorkers: [...(j.assignedWorkers || []).filter(id => id !== oldWorkerId), newWorkerId]
         };
       }
       return j;
@@ -296,7 +361,7 @@ export default function App() {
       if (j.id === jobId) {
         return {
           ...j,
-          assignedWorkers: j.assignedWorkers.filter(id => id !== workerId)
+          assignedWorkers: (j.assignedWorkers || []).filter(id => id !== workerId)
         };
       }
       return j;
@@ -316,7 +381,7 @@ export default function App() {
     
     if (!updatedJob.client || !updatedJob.location) {
       setModalInitialStep('details');
-    } else if (updatedJob.assignedWorkers.length < updatedJob.workersNeeded) {
+    } else if ((updatedJob.assignedWorkers || []).length < updatedJob.workersNeeded) {
       setModalInitialStep('workers');
     } else {
       setModalInitialStep('details');
@@ -361,22 +426,8 @@ export default function App() {
       );
     }
 
-    if (view === 'create-job') {
-      return (
-        <div style={{ background: '#fff', borderRadius: 32, padding: '20px 0', minHeight: '80vh', boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
-          <CreateJobModal 
-            job={null}
-            defaultDate={selectedDate}
-            workers={allWorkers}
-            onSave={handleSaveJob}
-            onClose={handleBack}
-          />
-        </div>
-      );
-    }
-
     if (view === 'worker-detail' && selectedWorker) {
-      const assignedJobs = jobs.filter(j => j.assignedWorkers.includes(selectedWorker.id));
+      const assignedJobs = jobs.filter(j => (j.assignedWorkers || []).includes(selectedWorker.id));
       return (
         <WorkerDetail 
           worker={selectedWorker} 
@@ -462,6 +513,15 @@ export default function App() {
             onCreateJob={() => { setEditingJob(null); setModalInitialStep('details'); setView('create-job'); }}
           />
         );
+      case 'attendance':
+        return (
+          <Attendance 
+            workers={allWorkers} 
+            records={attendanceRecords} 
+            onUpdateAttendance={handleUpdateAttendance}
+            onUpdateAllAttendance={handleUpdateAllAttendance}
+          />
+        );
       case 'jobs':
         return (
           <JobsList 
@@ -501,6 +561,15 @@ export default function App() {
         );
       case 'settings':
         return <Settings />;
+      case 'clients':
+        return (
+          <ClientsList
+            clients={clients}
+            onAddClient={() => { setSelectedClient(null); setShowClientModal(true); }}
+            onEditClient={(c) => { setSelectedClient(c); setShowClientModal(true); }}
+            onDeleteClient={handleDeleteClient}
+          />
+        );
       case 'dashboard':
       default:
         return (
@@ -590,7 +659,7 @@ export default function App() {
             />
           )}
 
-          {(view === 'edit-job') && (
+          {(view === 'edit-job' || view === 'create-job') && (
             <div style={{
               position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
               background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(12px)',
@@ -607,6 +676,7 @@ export default function App() {
                   job={editingJob}
                   defaultDate={selectedDate}
                   workers={allWorkers}
+                  clients={clients}
                   defaultWorkerIds={defaultWorkerId ? [defaultWorkerId] : []}
                   initialStep={modalInitialStep}
                   onSave={handleSaveJob}
@@ -629,6 +699,21 @@ export default function App() {
                 setShowAssignVehicleToJobModal(false);
               }}
               onClose={() => setShowAssignVehicleToJobModal(false)}
+            />
+          )}
+
+          {showClientModal && (
+            <ClientModal
+              client={selectedClient || undefined}
+              onSave={(data) => {
+                if (selectedClient) {
+                  handleUpdateClient({ ...data, id: selectedClient.id });
+                } else {
+                  handleAddClient(data);
+                }
+                setShowClientModal(false);
+              }}
+              onClose={() => setShowClientModal(false)}
             />
           )}
 

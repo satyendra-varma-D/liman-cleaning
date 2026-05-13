@@ -58,10 +58,10 @@ export function WallPlanner({
 
   const filteredJobs = useMemo(() => {
     return jobs.filter(job => {
-      const matchesSearch = job.client.toLowerCase().includes(activeFilters.search.toLowerCase()) || 
-                           job.location.toLowerCase().includes(activeFilters.search.toLowerCase());
-      const matchesType = activeFilters.type === 'All Types' || job.type === activeFilters.type.toLowerCase();
-      const matchesClient = activeFilters.client === 'All Clients' || job.client === activeFilters.client;
+      const matchesSearch = (job?.client?.toLowerCase() || '').includes(activeFilters.search.toLowerCase()) || 
+                           (job?.location?.toLowerCase() || '').includes(activeFilters.search.toLowerCase());
+      const matchesType = activeFilters.type === 'All Types' || job?.type === activeFilters.type.toLowerCase();
+      const matchesClient = activeFilters.client === 'All Clients' || job?.client === activeFilters.client;
       return matchesSearch && matchesType && matchesClient;
     });
   }, [jobs, activeFilters]);
@@ -73,7 +73,7 @@ export function WallPlanner({
     return eachDayOfInterval({ start, end });
   }, [currentDate]);
 
-  const dayHours = Array.from({ length: 15 }, (_, i) => i + 6); // 06:00 - 20:00
+  const dayHours = Array.from({ length: 18 }, (_, i) => i + 6); // 06:00 - 23:00
 
   const handlePrev = () => {
     if (viewMode === 'month') setCurrentDate(subMonths(currentDate, 1));
@@ -190,7 +190,7 @@ export function WallPlanner({
           <FilterSelect 
             label="Types" 
             value={activeFilters.type}
-            options={['All Types', ...Array.from(new Set(jobs.map(j => j.type)))]}
+            options={['All Types', ...Array.from(new Set(jobs.map(j => j?.type || '')))]}
             onChange={(val) => setActiveFilters({...activeFilters, type: val})}
           />
         </div>
@@ -211,12 +211,6 @@ export function WallPlanner({
             style={{ ...toggleBtn, background: '#F0FDF4', color: '#16A34A', border: '1.5px solid #DCFCE7', display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <MessageSquare size={14} /> WhatsApp
-          </button>
-          <button 
-            onClick={onAddLeave}
-            style={{ ...toggleBtn, background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FEE2E2', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <Plus size={14} /> Add Leave
           </button>
           <div style={{ position: 'relative', width: 260 }}>
             <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
@@ -271,7 +265,6 @@ export function WallPlanner({
                   draggable
                   onDragStart={(e) => handleDragStart(e, job.id)}
                   onDragEnd={handleDragEnd}
-                  onClick={() => setSelectedJobId(job.id)}
                   style={{
                     padding: '16px 18px', borderRadius: 20, background: '#fff', 
                     border: '1.5px solid #E2E8F0',
@@ -290,11 +283,11 @@ export function WallPlanner({
                     e.currentTarget.style.transform = 'none';
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 900, color: '#1E293B', marginBottom: 6 }}>{job.client || ''}</div>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: '#1E293B', marginBottom: 6 }}>{job.client || <span style={{ color: BLUE }}>+ Add client</span>}</div>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
                     <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-                      <MapPin size={12} color="#94A3B8" /> {job.location || ''}
+                      <MapPin size={12} color="#94A3B8" /> {job.location || <span style={{ color: BLUE }}>+ Add location</span>}
                     </div>
                     <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                       <Clock size={12} color="#94A3B8" /> {job.estimatedDuration}
@@ -485,7 +478,7 @@ export function WallPlanner({
                       const hourWidth = 1620 / 18; // 90px per hour
 
                       return sortedJobs.map(job => {
-                        const [h, m] = job.time.split(':').map(Number);
+                        const [h, m] = (job.time || '06:00').split(':').map(Number);
                         const start = h + m/60;
                         const duration = parseFloat(job.estimatedDuration) || 2;
                         const end = start + duration;
@@ -507,7 +500,7 @@ export function WallPlanner({
                                         job.type === 'deep' ? BLUE : 
                                         job.type === 'industrial' ? '#8B5CF6' : ORANGE;
    
-                        const assignedWorkers = workers.filter(w => job.assignedWorkers.includes(w.id));
+                        const assignedWorkers = workers.filter(w => (job.assignedWorkers || []).includes(w.id));
                         const workerNames = assignedWorkers.map(w => w.name + (w.isSupervisor ? ' ⭐' : '')).join(', ');
                         const vehicle = vehicles.find(v => v.id === job.assignedVehicleId);
                         
@@ -565,7 +558,7 @@ export function WallPlanner({
                               }}>
                                 <Users size={16} color={BLUE} />
                               </div>
-                              {job.assignedWorkers.length > 0 && (
+                              {(job.assignedWorkers || []).length > 0 && (
                                 <div style={{ 
                                   position: 'absolute', top: -4, right: -4, 
                                   background: BLUE, color: '#fff', 
@@ -645,7 +638,7 @@ export function WallPlanner({
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#475569', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   <MapPin size={12} color={ORANGE} />
-                                  <span>{job.location || 'Ad hoc'}</span>
+                                  <span>{job.location || <span style={{ color: BLUE, cursor: 'pointer' }}>+ Add location</span>}</span>
                                 </div>
                               </div>
 
@@ -726,11 +719,11 @@ export function WallPlanner({
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                          <div style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', lineHeight: 1.2 }}>{selectedJob.client || ''}</div>
                          <div style={{ 
-                           background: selectedJob.assignedWorkers.length > 0 ? '#ECFDF5' : '#F1F5F9',
-                           color: selectedJob.assignedWorkers.length > 0 ? '#059669' : '#64748B',
+                           background: (selectedJob.assignedWorkers || []).length > 0 ? '#ECFDF5' : '#F1F5F9',
+                           color: (selectedJob.assignedWorkers || []).length > 0 ? '#059669' : '#64748B',
                            padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 900, textTransform: 'uppercase'
                          }}>
-                           {selectedJob.assignedWorkers.length > 0 ? 'Assigned' : 'Personnel Pending'}
+                           {(selectedJob.assignedWorkers || []).length > 0 ? 'Assigned' : 'Personnel Pending'}
                          </div>
                       </div>
 

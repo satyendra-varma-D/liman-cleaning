@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Sparkles, CheckCircle2, ChevronRight, ChevronLeft, MapPin, User, Users, ArrowLeft, Calendar, Clock, Briefcase, AlertTriangle, RefreshCw, Timer, CloudSun } from 'lucide-react';
-import type { Job, JobType, Worker } from '../types';
+import { X, Sparkles, CheckCircle2, ChevronRight, ChevronLeft, MapPin, User, Users, ArrowLeft, Calendar, Clock, Briefcase, AlertTriangle, Timer } from 'lucide-react';
+import type { Job, JobType, Worker, Client } from '../types';
 import { useLanguage } from '../LanguageContext';
 import { BLUE, ORANGE } from '../constants';
 import { suggestTeam } from '../SuggestionEngine';
@@ -9,6 +9,7 @@ interface Props {
   job: Job | null;
   defaultDate: string;
   workers: Worker[];
+  clients: Client[];
   defaultWorkerIds?: string[];
   initialStep?: 'details' | 'workers';
   onSave: (data: Omit<Job, 'id'> & { id?: string }) => void;
@@ -235,16 +236,14 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
   const [assignedWorkers, setAssignedWorkers] = useState<string[]>(job?.assignedWorkers ?? defaultWorkerIds);
   const [notes, setNotes]                 = useState(job?.notes ?? '');
   const [requiredSkills, setRequiredSkills] = useState<string[]>(job?.requiredSkills ?? [job?.type ?? 'general']);
-  const [isRecurring, setIsRecurring]     = useState(job?.isRecurring ?? false);
   const [priority, setPriority]           = useState<'high' | 'medium' | 'low'>(job?.priority ?? 'medium');
   const [estimatedDuration, setEstimatedDuration] = useState(job?.estimatedDuration ?? '');
-  const [isWeatherDependent, setIsWeatherDependent] = useState(job?.isWeatherDependent ?? false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const isEdit = !!job;
 
   const suggestionResults = useMemo(() => {
-    const dummyJob: Job = {
+    const dummyJob: any = {
       id: job?.id || 'temp',
       client,
       location,
@@ -256,15 +255,15 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
       status: 'pending',
       requiredSkills,
       needsGermanSpeaker: true,
-      isWeatherDependent,
-      isRecurring,
+      isWeatherDependent: false,
+      isRecurring: false,
       priority,
       estimatedDuration,
       notes,
     };
 
     return suggestTeam(dummyJob, workers, new Set());
-  }, [workers, client, requiredSkills, workersNeeded, isRecurring, priority]);
+  }, [workers, client, location, date, time, type, requiredSkills, workersNeeded, priority]);
 
   const recommendedIds = useMemo(() => suggestionResults.recommendedTeam.map(t => t.worker.id), [suggestionResults]);
 
@@ -306,9 +305,9 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
   };
 
   const filteredCustomers = useMemo(() => {
-    if (!client || client.trim().length === 0) return CUSTOMERS;
-    return CUSTOMERS.filter(c => c.name.toLowerCase().includes(client.toLowerCase()));
-  }, [client]);
+    if (!client || client.trim().length === 0) return clients;
+    return clients.filter(c => c.name.toLowerCase().includes(client.toLowerCase()));
+  }, [client, clients]);
 
 
   const handleSuggestFromPast = () => {
@@ -353,8 +352,8 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
       notes: notes.trim(),
       requiredSkills,
       needsGermanSpeaker: true, // Mandatory
-      isWeatherDependent,
-      isRecurring,
+      isWeatherDependent: false,
+      isRecurring: false,
       priority,
       estimatedDuration,
     });
@@ -558,28 +557,7 @@ export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [
                 </div>
               </div>
 
-              {/* Switches Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, marginTop: 40, paddingTop: 32, borderTop: '1px solid #F1F5F9' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Toggle active={isRecurring} onToggle={() => setIsRecurring(!isRecurring)} />
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <RefreshCw size={14} color="#64748B" /> Recurring Work
-                    </div>
-                    <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Scheduled periodically</div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Toggle active={isWeatherDependent} onToggle={() => setIsWeatherDependent(!isWeatherDependent)} />
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <CloudSun size={14} color="#64748B" /> Weather Dependent
-                    </div>
-                    <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Affected by conditions</div>
-                  </div>
-                </div>
-
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24, marginTop: 40, paddingTop: 32, borderTop: '1px solid #F1F5F9' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 40, height: 22, borderRadius: 20, background: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', marginLeft: 18 }} />

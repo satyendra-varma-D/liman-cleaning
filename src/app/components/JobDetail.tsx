@@ -157,15 +157,7 @@ export function JobDetail({ job, workers, vehicles, onBack, onEdit, onAssignWork
               </div>
             </div>
 
-            {job.isWeatherDependent && (
-              <div style={{ 
-                marginTop: 24, padding: '12px 16px', borderRadius: 12, background: '#EFF6FF', 
-                border: '1px solid #DBEAFE', display: 'inline-flex', alignItems: 'center', gap: 10
-              }}>
-                <CloudSun size={18} color={BLUE} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: BLUE }}>Weather Dependent - Subject to cancellation</span>
-              </div>
-            )}
+
 
             <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {job.requiredSkills.map(skill => (
