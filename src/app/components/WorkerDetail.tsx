@@ -10,11 +10,10 @@ interface Props {
   assignedJobs: Job[];
   onBack: () => void;
   onJobClick: (job: Job) => void;
-  onAddLeave: () => void;
   allWorkers: Worker[];
 }
 
-export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLeave, allWorkers }: Props) {
+export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, allWorkers }: Props) {
   const { t } = useLanguage();
   const [viewMode, setViewMode] = useState<'list' | 'month' | 'day'>('day');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -69,18 +68,6 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLe
         </div>
 
         <div style={{ display: 'flex', gap: 12 }}>
-          <button
-            onClick={onAddLeave}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              background: '#FEF2F2', border: '1.5px solid #FEE2E2',
-              borderRadius: 14, padding: '12px 24px',
-              cursor: 'pointer', fontSize: 15, fontWeight: 800, color: '#DC2626',
-              transition: 'all 0.2s'
-            }}
-          >
-            <Plus size={18} /> Add Leave
-          </button>
           <button
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
@@ -158,7 +145,7 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, onAddLe
 
              {worker.tags && worker.tags.length > 0 && (
                <>
-                 <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, color: '#1E293B' }}>AI Optimization Tags</h3>
+                 <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, color: '#1E293B' }}>Optimization Tags</h3>
                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
                     {worker.tags.map(t => (
                        <span key={t} style={{ background: '#EFF6FF', color: BLUE, padding: '6px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, border: '1px solid #DBEAFE' }}>

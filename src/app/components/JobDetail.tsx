@@ -48,6 +48,9 @@ export function JobDetail({ job, workers, vehicles, onBack, onEdit, onAssignWork
     grass: 'Grass Cutting',
     machine: 'Machine Cleaning',
     general: t('generalCleaning'),
+    office: 'Office Cleaning',
+    facade: 'Facade Cleaning',
+    industrial: 'Industrial Cleaning',
   };
 
   const statusConfig: Record<JobStatus, { label: string; bg: string; color: string; bar: string }> = {

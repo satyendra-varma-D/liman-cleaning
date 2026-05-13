@@ -11,7 +11,8 @@ import {
   UserCheck,
   Truck,
   Plane,
-  ShieldCheck
+  ShieldCheck,
+  CheckCircle2
 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 import { UserRole } from '../types';
@@ -35,7 +36,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
     { id: 'jobs', label: t('jobs'), icon: Briefcase, roles: ['admin', 'secretary'] },
     { id: 'workers', label: t('workers'), icon: Users, roles: ['admin', 'secretary'] },
     { id: 'vehicles', label: 'Vehicles', icon: Truck, roles: ['admin', 'secretary'] },
-    { id: 'reports', label: t('reports'), icon: BarChart3, roles: ['admin'] },
+    { id: 'attendance', label: 'Attendance', icon: CheckCircle2, roles: ['admin', 'secretary'] },
+    { id: 'reports', label: t('reports'), icon: BarChart3, roles: ['admin'], disabled: true },
   ].filter(item => item.roles.includes(userRole));
   return (
     <aside className={`${isCollapsed ? 'w-20' : 'w-64'} h-screen bg-white text-slate-500 flex flex-col fixed left-0 top-0 z-50 shadow-[10px_0_40px_rgba(0,0,0,0.02)] border-r border-slate-50 transition-all duration-300`}>
@@ -67,13 +69,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
         {menuItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => onModuleChange(item.id)}
+            onClick={() => !item.disabled && onModuleChange(item.id)}
             title={isCollapsed ? item.label : ''}
             className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-xl transition-all duration-300 group ${
               activeModule === item.id 
                 ? 'bg-blue-50 text-blue-600 border border-blue-100 shadow-sm' 
                 : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
-            }`}
+            } ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <div className="flex items-center gap-3">
               <item.icon className={`w-5 h-5 transition-colors ${activeModule === item.id ? 'text-blue-600' : 'text-slate-300 group-hover:text-slate-500'}`} strokeWidth={activeModule === item.id ? 2.5 : 2} />

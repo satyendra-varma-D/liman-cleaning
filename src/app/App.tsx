@@ -434,7 +434,6 @@ export default function App() {
           assignedJobs={assignedJobs} 
           onBack={handleBack} 
           onJobClick={handleJobClick}
-          onAddLeave={() => { setDefaultWorkerId(selectedWorker.id); setView('add-leave'); }}
           allWorkers={allWorkers}
         />
       );

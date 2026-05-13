@@ -74,10 +74,6 @@ export const suggestTeam = (
       }
   
       // Total Experience
-    if (worker.totalJobs && worker.totalJobs > 100) {
-      score += 10;
-      reasons.push('Highly experienced staff');
-    }
 
     // Supervisor bonus
     if (worker.isSupervisor) {

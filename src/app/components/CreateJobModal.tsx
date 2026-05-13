@@ -192,6 +192,7 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
         </div>
       )}
 
+      {/* 
       {(!isSuggested || showAI) && (
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
           {worker.skills.map(s => (
@@ -220,11 +221,12 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
           })}
         </div>
       )}
+      */}
     </div>
   );
 }
 
-export function CreateJobModal({ job, defaultDate, workers, defaultWorkerIds = [], initialStep, onSave, onClose }: Props) {
+export function CreateJobModal({ job, defaultDate, workers, clients, defaultWorkerIds = [], initialStep, onSave, onClose }: Props) {
   const { t } = useLanguage();
   const [step, setStep]                   = useState<'details' | 'workers'>(initialStep || 'details');
   const [client, setClient]               = useState(job?.client ?? '');

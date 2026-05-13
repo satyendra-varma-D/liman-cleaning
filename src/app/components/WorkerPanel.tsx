@@ -136,7 +136,7 @@ export function WorkerPanel({ job, workers, onSave, onClose }: Props) {
           </div>
         </div>
 
-        {/* AI Insight Row */}
+        {/* Insight Row */}
         {suggestionReasons && suggestionReasons.length > 0 && (
           <div 
             onClick={(e) => { e.stopPropagation(); setShowAI(!showAI); }}
@@ -152,7 +152,7 @@ export function WorkerPanel({ job, workers, onSave, onClose }: Props) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Sparkles size={12} color="#16A34A" />
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#15803D' }}>AI INSIGHT</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#15803D' }}>SYSTEM INSIGHT</span>
               </div>
               <div style={{ fontSize: 10, color: '#16A34A', fontWeight: 800 }}>
                 {showAI ? 'Close' : suggestionReasons[0]}
