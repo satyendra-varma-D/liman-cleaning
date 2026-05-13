@@ -3,7 +3,7 @@ import {
   ChevronLeft, ChevronRight, Search, Filter, Sparkles, Save, Send, 
   Clock, MapPin, Users, Truck, Info, AlertTriangle, CheckCircle2, 
   MoreHorizontal, Phone, MessageSquare, ChevronDown, Plus, ExternalLink,
-  Calendar as CalendarIcon, Briefcase, FileText, AlertCircle, List, CloudSnow
+  Calendar as CalendarIcon, Briefcase, FileText, AlertCircle, List, CloudSnow, Cloud, Sun, Droplets, Thermometer
 } from 'lucide-react';
 import type { Job, Worker, Vehicle, JobStatus } from '../types';
 import { BLUE, ORANGE } from '../constants';
@@ -50,6 +50,7 @@ export function WallPlanner({
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [dragOverTime, setDragOverTime] = useState<string | null>(null);
   const [activeDraggedJobId, setActiveDraggedJobId] = useState<string | null>(null);
+  const [showWeather, setShowWeather] = useState(false);
 
   const selectedJob = useMemo(() => jobs.find(j => j.id === selectedJobId), [jobs, selectedJobId]);
 
@@ -176,16 +177,7 @@ export function WallPlanner({
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <h1 style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', margin: 0 }}>Liman Planner</h1>
           
-          <div style={{ display: 'flex', background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', padding: 2, gap: 2 }}>
-            <button 
-              onClick={() => setViewMode('month')}
-              style={{ ...toggleBtn, background: viewMode === 'month' ? BLUE : 'transparent', color: viewMode === 'month' ? '#fff' : '#64748B' }}
-            >Month</button>
-            <button 
-              onClick={() => setViewMode('day')}
-              style={{ ...toggleBtn, background: viewMode === 'day' ? BLUE : 'transparent', color: viewMode === 'day' ? '#fff' : '#64748B' }}
-            >Day</button>
-          </div>
+
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', padding: '6px 12px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
             <button onClick={handlePrev} style={navBtn}><ChevronLeft size={16} /></button>
@@ -204,6 +196,22 @@ export function WallPlanner({
         </div>
 
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <button 
+            onClick={() => setShowWeather(true)}
+            style={{ ...toggleBtn, background: '#F8FAFC', color: '#64748B', border: '1.5px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Cloud size={14} /> Weather
+          </button>
+          <button 
+            style={{ ...toggleBtn, background: '#F0F9FF', color: BLUE, border: '1.5px solid #E0F2FE', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Send size={14} /> Publish
+          </button>
+          <button 
+            style={{ ...toggleBtn, background: '#F0FDF4', color: '#16A34A', border: '1.5px solid #DCFCE7', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <MessageSquare size={14} /> WhatsApp
+          </button>
           <button 
             onClick={onAddLeave}
             style={{ ...toggleBtn, background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FEE2E2', display: 'flex', alignItems: 'center', gap: 6 }}
@@ -282,11 +290,11 @@ export function WallPlanner({
                     e.currentTarget.style.transform = 'none';
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 900, color: '#1E293B', marginBottom: 6 }}>{job.client || 'New Order'}</div>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: '#1E293B', marginBottom: 6 }}>{job.client || ''}</div>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
                     <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-                      <MapPin size={12} color="#94A3B8" /> {job.location || 'Location missing'}
+                      <MapPin size={12} color="#94A3B8" /> {job.location || ''}
                     </div>
                     <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                       <Clock size={12} color="#94A3B8" /> {job.estimatedDuration}
@@ -376,11 +384,11 @@ export function WallPlanner({
                 {/* Board Header (Time Blocks) */}
                 <div style={{ display: 'flex', background: '#F8FAFD', borderBottom: '1px solid #E2E8F0' }}>
                   {[
-                    '06:00 - 08:00', '08:00 - 10:00', '10:00 - 12:00', 
-                    '12:00 - 14:00', '14:00 - 16:00', '16:00 - 18:00',
-                    '18:00 - 20:00', '20:00 - 22:00', '22:00 - 24:00'
+                    '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', 
+                    '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
+                    '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'
                   ].map(block => (
-                    <div key={block} style={{ flex: 1, padding: '12px', textAlign: 'center', fontSize: 11, fontWeight: 900, color: '#94A3B8', letterSpacing: '0.05em', borderRight: '1px solid #E2E8F0', minWidth: 180 }}>
+                    <div key={block} style={{ flex: 1, padding: '12px', textAlign: 'center', fontSize: 11, fontWeight: 900, color: '#94A3B8', letterSpacing: '0.05em', borderRight: '1px solid #E2E8F0', minWidth: 90 }}>
                       {block}
                     </div>
                   ))}
@@ -405,7 +413,7 @@ export function WallPlanner({
                       linear-gradient(90deg, #F1F5F9 1.5px, transparent 1.5px), 
                       linear-gradient(0deg, #F1F5F9 1.5px, transparent 1.5px)
                     `, 
-                    backgroundSize: '11.111% 100%, 100% 200px', // 9 columns, 200px rows
+                    backgroundSize: `${100/18}% 100%, 100% 200px`, // 18 columns, 200px rows
                     minWidth: 1620,
                     minHeight: '100%'
                   }} />
@@ -598,7 +606,7 @@ export function WallPlanner({
                                     fontSize: 14, fontWeight: 900, color: '#1E293B',
                                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                                   }}>
-                                    {job.client || 'New Order'}
+                                    {job.client || ''}
                                   </div>
                                   <div style={{ 
                                     fontSize: 11, color: '#64748B', fontWeight: 700,
@@ -618,7 +626,17 @@ export function WallPlanner({
                                 borderTop: `1px solid ${hasRisk ? `${riskColor}20` : '#F1F5F9'}`,
                                 paddingTop: 12
                               }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: vehicle ? '#475569' : '#94A3B8', fontWeight: 700 }}>
+                                <div 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onAssignVehicle?.(job);
+                                  }}
+                                  style={{ 
+                                    display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, 
+                                    color: vehicle ? '#475569' : BLUE, fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
                                   <Truck size={12} color={vehicle ? BLUE : '#94A3B8'} />
                                   <span style={{ whiteSpace: 'nowrap' }}>
                                     {vehicle ? vehicle.name : 'No Vehicle assigned'}
@@ -651,14 +669,14 @@ export function WallPlanner({
 
                     {/* Drop Targets (Grid Columns) */}
                     <div style={{ display: 'flex', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
-                      {[6, 8, 10, 12, 14, 16, 18, 20, 22].map(startHour => (
+                      {[6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23].map(startHour => (
                         <div 
                           key={startHour} 
                           onDragOver={(e) => { e.preventDefault(); setDragOverDate(format(currentDate, 'yyyy-MM-dd')); setDragOverTime(`${startHour.toString().padStart(2, '0')}:00`); }}
                           onDrop={(e) => handleDrop(e, format(currentDate, 'yyyy-MM-dd'), `${startHour.toString().padStart(2, '0')}:00`)}
                           style={{ 
                             flex: 1, 
-                            minWidth: 180,
+                            minWidth: 90,
                             pointerEvents: 'auto',
                             background: (dragOverDate === format(currentDate, 'yyyy-MM-dd') && dragOverTime === `${startHour.toString().padStart(2, '0')}:00`) ? 'rgba(37, 99, 235, 0.05)' : 'transparent',
                           }}
@@ -706,7 +724,7 @@ export function WallPlanner({
                       }} />
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                         <div style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', lineHeight: 1.2 }}>{selectedJob.client || 'New Order'}</div>
+                         <div style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', lineHeight: 1.2 }}>{selectedJob.client || ''}</div>
                          <div style={{ 
                            background: selectedJob.assignedWorkers.length > 0 ? '#ECFDF5' : '#F1F5F9',
                            color: selectedJob.assignedWorkers.length > 0 ? '#059669' : '#64748B',
@@ -842,6 +860,90 @@ export function WallPlanner({
           </div>
         )}
       </div>
+
+      {showWeather && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)',
+          zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{ 
+            width: '100%', maxWidth: '500px', 
+            background: '#fff', borderRadius: '32px', 
+            boxShadow: '0 40px 100px rgba(0,0,0,0.2)', overflow: 'hidden',
+            position: 'relative'
+          }}>
+            <div style={{ padding: '32px', background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: '#fff', position: 'relative' }}>
+              <button 
+                onClick={() => setShowWeather(false)}
+                style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', padding: 8, cursor: 'pointer', color: '#fff' }}
+              >
+                <MoreHorizontal size={18} />
+              </button>
+              <div style={{ fontSize: 13, fontWeight: 800, opacity: 0.9, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Current Forecast</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <Sun size={48} />
+                <div>
+                  <div style={{ fontSize: 42, fontWeight: 900 }}>24°C</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, opacity: 0.9 }}>Sunny with light clouds</div>
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: 20, textAlign: 'center' }}>
+                  <Droplets size={20} color={BLUE} style={{ marginBottom: 8 }} />
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#64748B' }}>Humidity</div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: '#1E293B' }}>42%</div>
+                </div>
+                <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: 20, textAlign: 'center' }}>
+                  <Thermometer size={20} color={ORANGE} style={{ marginBottom: 8 }} />
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#64748B' }}>RealFeel</div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: '#1E293B' }}>26°C</div>
+                </div>
+                <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: 20, textAlign: 'center' }}>
+                  <Cloud size={20} color="#94A3B8" style={{ marginBottom: 8 }} />
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#64748B' }}>Clouds</div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: '#1E293B' }}>15%</div>
+                </div>
+              </div>
+
+              <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: 900, color: '#1E293B', marginBottom: 16 }}>Next 3 Hours</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', marginBottom: 8 }}>14:00</div>
+                    <Sun size={20} color="#F59E0B" />
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#1E293B', marginTop: 4 }}>25°</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', marginBottom: 8 }}>15:00</div>
+                    <Sun size={20} color="#F59E0B" />
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#1E293B', marginTop: 4 }}>24°</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', marginBottom: 8 }}>16:00</div>
+                    <Cloud size={20} color="#94A3B8" />
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#1E293B', marginTop: 4 }}>22°</div>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setShowWeather(false)}
+                style={{ 
+                  width: '100%', padding: '16px', borderRadius: 16, background: '#F1F5F9', color: '#1E293B', 
+                  border: 'none', fontSize: 14, fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                Close Weather Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

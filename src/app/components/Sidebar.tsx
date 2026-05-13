@@ -25,7 +25,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModuleChange, userRole, isCollapsed, onToggleCollapse }) => {
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
 
   const menuItems = [
     { id: 'planner', label: 'Planner', icon: LayoutDashboard, roles: ['admin', 'secretary'] },
@@ -33,7 +33,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
     { id: 'jobs', label: t('jobs'), icon: Briefcase, roles: ['admin', 'secretary'] },
     { id: 'workers', label: t('workers'), icon: Users, roles: ['admin', 'secretary'] },
     { id: 'vehicles', label: 'Vehicles', icon: Truck, roles: ['admin', 'secretary'] },
-    { id: 'leaves', label: 'Leaves', icon: Plane, roles: ['admin', 'secretary'] },
     { id: 'reports', label: t('reports'), icon: BarChart3, roles: ['admin'] },
   ].filter(item => item.roles.includes(userRole));
   return (
@@ -118,37 +117,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, onModu
               )}
             </div>
           </div>
-        )}
-
-        {!isCollapsed ? (
-          <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
-            <Languages className="w-4 h-4 text-slate-400" />
-            <div className="flex bg-white p-1 rounded-xl border border-slate-100 shadow-sm">
-              <button
-                onClick={() => setLanguage('de')}
-                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
-                  language === 'de' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                DE
-              </button>
-              <button
-                onClick={() => setLanguage('en')}
-                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
-                  language === 'en' ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                EN
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => setLanguage(language === 'en' ? 'de' : 'en')}
-            className="w-full flex justify-center p-2 rounded-xl bg-slate-50 text-slate-400 font-bold text-[10px] hover:text-blue-600 transition-colors"
-          >
-            {language.toUpperCase()}
-          </button>
         )}
 
         <button

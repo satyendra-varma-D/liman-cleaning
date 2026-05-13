@@ -49,21 +49,21 @@ const INITIAL_JOBS: Job[] = [
   },
   {
     id: 'j2', client: 'Billa Markt Ottakring', location: 'Thaliastraße 120, 1160 Wien',
-    date: today, time: '07:30', workersNeeded: 2, assignedWorkers: ['w2', 'w7'],
+    date: today, time: '06:00', workersNeeded: 2, assignedWorkers: ['w2', 'w7'],
     type: 'general', status: 'scheduled', notes: '',
     requiredSkills: ['general'], needsGermanSpeaker: false, assignedVehicleId: 'v2', 
     isWeatherDependent: false, isRecurring: true, priority: 'high', estimatedDuration: '2h'
   },
   {
     id: 'j3', client: 'Hotel Erzherzog Johann', location: 'Graben 25, 1010 Wien',
-    date: today, time: '09:00', workersNeeded: 4, assignedWorkers: ['w6', 'w9', 'w12'],
+    date: today, time: '06:00', workersNeeded: 4, assignedWorkers: ['w6', 'w9', 'w12'],
     type: 'special', status: 'pending', notes: 'Lobby + Konferenzräume, Schlüssel beim Portier',
     requiredSkills: ['special'], needsGermanSpeaker: true, assignedVehicleId: 'v3', 
     isWeatherDependent: false, isRecurring: false, priority: 'low', estimatedDuration: '6h'
   },
   {
     id: 'j4', client: 'Schulgebäude BRG 6', location: 'Amerlingstraße 6, 1060 Wien',
-    date: today, time: '13:00', workersNeeded: 2, assignedWorkers: [],
+    date: today, time: '10:00', workersNeeded: 2, assignedWorkers: [],
     type: 'general', status: 'unassigned', notes: '',
     requiredSkills: ['general'], needsGermanSpeaker: false, 
     isWeatherDependent: true, isRecurring: false, priority: 'medium', estimatedDuration: '3h',
@@ -71,7 +71,7 @@ const INITIAL_JOBS: Job[] = [
   },
   {
     id: 'j5', client: 'Privat: Familie Berger', location: 'Sieveringer Str. 44, 1190 Wien',
-    date: today, time: '14:30', workersNeeded: 1, assignedWorkers: ['w3'],
+    date: today, time: '10:00', workersNeeded: 1, assignedWorkers: ['w3'],
     type: 'special', status: 'incomplete', notes: 'Needs follow-up for hard water stains',
     requiredSkills: ['special'], needsGermanSpeaker: true, 
     isWeatherDependent: false, isRecurring: false, priority: 'medium', estimatedDuration: '2h',

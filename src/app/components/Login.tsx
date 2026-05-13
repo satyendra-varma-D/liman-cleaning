@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogIn, User, Lock, ArrowRight, Languages } from 'lucide-react';
+import { LogIn, User, Lock, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 
 import { UserRole } from '../types';
@@ -11,8 +11,7 @@ interface LoginProps {
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('admin');
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,25 +32,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       {/* Left Side - Login Section */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-12 bg-white z-10 shadow-[20px_0_60px_rgba(0,0,0,0.02)]">
         <div className="w-full max-w-md space-y-10 relative">
-          {/* Language Switcher for Login Page */}
-          <div className="absolute -top-16 right-0 flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100 shadow-sm">
-            <button
-              onClick={() => setLanguage('de')}
-              className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
-                language === 'de' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              DE
-            </button>
-            <button
-              onClick={() => setLanguage('en')}
-              className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
-                language === 'en' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              EN
-            </button>
-          </div>
+
 
           <div className="text-center lg:text-left">
             <h2 className="text-5xl font-bold text-slate-800 tracking-tight leading-tight">{t('welcomeBack')}</h2>
@@ -115,10 +96,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <div className="text-[11px] font-mono text-slate-600">admin@liman.at / admin123</div>
                 </div>
                 
-                <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-xl border border-slate-200">
-                  <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Secretary</span>
-                  <div className="text-[11px] font-mono text-slate-600">office@liman.at / secretary123</div>
-                </div>
+
               </div>
               <p className="text-[9px] text-slate-400 text-center italic">Any email/password will work for this prototype.</p>
             </div>
