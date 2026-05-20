@@ -32,6 +32,51 @@ import { JobType, JobStatus, Worker, Job, Vehicle, UserRole, AttendanceRecord, A
 
 const today = format(new Date(), 'yyyy-MM-dd');
 
+// Time calculation helpers for conflict checking
+function parseTimeToMinutes(timeStr: string): number {
+  if (!timeStr) return 0;
+  const [hrs, mins] = timeStr.split(':').map(Number);
+  return (hrs || 0) * 60 + (mins || 0);
+}
+
+function parseDurationToMinutes(durationStr: string): number {
+  if (!durationStr) return 120; // default 2 hours
+  const hours = parseFloat(durationStr) || 2;
+  return Math.round(hours * 60);
+}
+
+function checkTimeOverlap(time1: string, duration1: string, time2: string, duration2: string): boolean {
+  const t1Start = parseTimeToMinutes(time1);
+  const t1End = t1Start + parseDurationToMinutes(duration1);
+  const t2Start = parseTimeToMinutes(time2);
+  const t2End = t2Start + parseDurationToMinutes(duration2);
+  return t1Start < t2End && t2Start < t1End;
+}
+
+function isJobInsideAvailableSlot(jobTime: string, jobDuration: string, slotStart: string, slotEnd: string): boolean {
+  const jobStartMin = parseTimeToMinutes(jobTime);
+  const jobEndMin = jobStartMin + parseDurationToMinutes(jobDuration);
+  const slotStartMin = parseTimeToMinutes(slotStart);
+  const slotEndMin = parseTimeToMinutes(slotEnd);
+  return jobStartMin >= slotStartMin && jobEndMin <= slotEndMin;
+}
+
+function getEndTime(timeStr: string, durationStr: string): string {
+  const startMin = parseTimeToMinutes(timeStr);
+  const endMin = startMin + parseDurationToMinutes(durationStr);
+  const hrs = Math.floor(endMin / 60) % 24;
+  const mins = endMin % 60;
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
+function getDayOfWeek(dateStr: string): string {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const dateObj = new Date(year, month - 1, day);
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[dateObj.getDay()];
+}
+
 const BASE_WORKERS: Omit<Worker, 'available'>[] = [
   { id: 'w1', name: 'Maria Huber', baseAvailable: true, skills: ['window', 'general'], languages: ['DE', 'EN'], isSupervisor: true, reliability: 5, pastCustomers: ['Raiffeisen Bank AG', 'Schulgebäude BRG 6'], avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop', totalJobs: 142, rating: 4.9, synergyWith: ['w3', 'w5', 'w9'], conflictsWith: ['w4', 'w8'], tags: ['early-bird', 'polite', 'bank-certified'] },
   { id: 'w2', name: 'Tomasz Kowalski', baseAvailable: true, skills: ['snow', 'general'], languages: ['PL', 'EN'], isSupervisor: false, reliability: 4, pastCustomers: ['Billa Markt Ottakring', 'Bürokomplex Euro Plaza'], avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop', totalJobs: 89, rating: 4.7, synergyWith: ['w7', 'w11'], conflictsWith: ['w6'], tags: ['winter-pro', 'punctual'] },
@@ -212,16 +257,37 @@ export default function App() {
   const selectedWorker = useMemo(() => allWorkers.find(w => w.id === selectedWorkerId) ?? null, [allWorkers, selectedWorkerId]);
 
   const workersForPanel: Worker[] = useMemo(() => {
-    if (!selectedJobId) return allWorkers;
+    const job = jobs.find(j => j.id === selectedJobId);
+    if (!job) return allWorkers;
     const otherBusy = new Set<string>();
-    filteredJobs
-      .filter(j => j.id !== selectedJobId)
-      .forEach(j => (j.assignedWorkers || []).forEach(id => otherBusy.add(id)));
+    jobs.forEach(j => {
+      if (j.id === selectedJobId) return;
+      if (j.date === job.date && checkTimeOverlap(j.time, j.estimatedDuration, job.time, job.estimatedDuration)) {
+        (j.assignedWorkers || []).forEach(id => otherBusy.add(id));
+      }
+    });
+
+    const recurringUnavailable = new Set<string>();
+    workerPool.forEach(w => {
+      if (w.workType === 'recurring') {
+        const jobDayOfWeek = getDayOfWeek(job.date);
+        if (w.recurringDays?.includes(jobDayOfWeek)) {
+          const slot = w.recurringTimeSlot || '';
+          if (slot.includes(' - ')) {
+            const [slotStart, slotEnd] = slot.split(' - ');
+            if (!isJobInsideAvailableSlot(job.time, job.estimatedDuration, slotStart, slotEnd)) {
+              recurringUnavailable.add(w.id);
+            }
+          }
+        }
+      }
+    });
+
     return workerPool.map(w => ({
       ...w,
-      available: w.baseAvailable && !otherBusy.has(w.id),
+      available: w.baseAvailable && !otherBusy.has(w.id) && !recurringUnavailable.has(w.id),
     }));
-  }, [filteredJobs, selectedJobId, workerPool, allWorkers]);
+  }, [jobs, selectedJobId, workerPool, allWorkers]);
 
   const handleSaveJob = (data: Omit<Job, 'id'> & { id?: string }) => {
     if (data.id) {
@@ -234,9 +300,19 @@ export default function App() {
   };
 
   const handleSaveWorker = (newWorker: Omit<Worker, 'available'>) => {
-    setWorkerPool(prev => [...prev, newWorker]);
-    setView('board');
-    setActiveModule('workers');
+    setWorkerPool(prev => {
+      const exists = prev.some(w => w.id === newWorker.id);
+      if (exists) {
+        return prev.map(w => w.id === newWorker.id ? { ...w, ...newWorker } : w);
+      }
+      return [...prev, { ...newWorker, available: true }];
+    });
+    if (selectedWorker && selectedWorker.id === newWorker.id) {
+      setView('worker-detail');
+    } else {
+      setView('board');
+      setActiveModule('workers');
+    }
   };
 
   const handleAddLeave = (workerId: string, startDate: string, endDate: string, reason: string) => {
@@ -435,6 +511,7 @@ export default function App() {
           onBack={handleBack} 
           onJobClick={handleJobClick}
           allWorkers={allWorkers}
+          onEdit={() => setView('add-worker')}
         />
       );
     }
@@ -442,8 +519,16 @@ export default function App() {
       return (
         <div style={{ background: '#fff', borderRadius: 32, padding: '20px 0', minHeight: '80vh', boxShadow: '0 10px 40px rgba(0,0,0,0.05)' }}>
           <AddWorkerModal 
+            worker={selectedWorker}
+            clients={clients}
             onSave={handleSaveWorker} 
-            onClose={handleBack} 
+            onClose={() => {
+              if (selectedWorker) {
+                setView('worker-detail');
+              } else {
+                handleBack();
+              }
+            }} 
           />
         </div>
       );
@@ -481,14 +566,13 @@ export default function App() {
             jobs={filteredJobs}
             workers={allWorkers}
             vehicles={vehicles}
+            clients={clients}
             currentDate={selectedDate}
             onDateChange={setSelectedDate}
             onAddLeave={() => { setDefaultWorkerId(null); setView('add-leave'); }}
             onJobClick={(job) => {
               setSelectedJobId(job.id);
-              setEditingJob(job);
-              setModalInitialStep('details');
-              setView('edit-job');
+              setView('detail');
             }}
             onAssignWorkers={(job) => {
               setSelectedJobId(job.id);
@@ -536,7 +620,7 @@ export default function App() {
         return <WorkersList 
           workers={allWorkers} 
           onWorkerClick={handleWorkerClick} 
-          onAddWorker={() => setView('add-worker')} 
+          onAddWorker={() => { setSelectedWorkerId(null); setView('add-worker'); }} 
         />;
       case 'vehicles':
         return <VehiclesList 
@@ -621,6 +705,7 @@ export default function App() {
             <WorkerPanel
               job={selectedJob}
               workers={workersForPanel}
+              jobs={jobs}
               onSave={handleAssignWorkers}
               onClose={() => setShowWorkerPanel(false)}
             />
@@ -676,6 +761,7 @@ export default function App() {
                   defaultDate={selectedDate}
                   workers={allWorkers}
                   clients={clients}
+                  jobs={jobs}
                   defaultWorkerIds={defaultWorkerId ? [defaultWorkerId] : []}
                   initialStep={modalInitialStep}
                   onSave={handleSaveJob}

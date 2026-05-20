@@ -10,10 +10,56 @@ interface Props {
   defaultDate: string;
   workers: Worker[];
   clients: Client[];
+  jobs: Job[];
   defaultWorkerIds?: string[];
   initialStep?: 'details' | 'workers';
   onSave: (data: Omit<Job, 'id'> & { id?: string }) => void;
   onClose: () => void;
+}
+
+// Time calculation helpers for conflict checking
+function parseTimeToMinutes(timeStr: string): number {
+  if (!timeStr) return 0;
+  const [hrs, mins] = timeStr.split(':').map(Number);
+  return (hrs || 0) * 60 + (mins || 0);
+}
+
+function parseDurationToMinutes(durationStr: string): number {
+  if (!durationStr) return 120; // default 2 hours
+  const hours = parseFloat(durationStr) || 2;
+  return Math.round(hours * 60);
+}
+
+function checkTimeOverlap(time1: string, duration1: string, time2: string, duration2: string): boolean {
+  const t1Start = parseTimeToMinutes(time1);
+  const t1End = t1Start + parseDurationToMinutes(duration1);
+  const t2Start = parseTimeToMinutes(time2);
+  const t2End = t2Start + parseDurationToMinutes(duration2);
+  return t1Start < t2End && t2Start < t1End;
+}
+
+function isJobInsideAvailableSlot(jobTime: string, jobDuration: string, slotStart: string, slotEnd: string): boolean {
+  const jobStartMin = parseTimeToMinutes(jobTime);
+  const jobEndMin = jobStartMin + parseDurationToMinutes(jobDuration);
+  const slotStartMin = parseTimeToMinutes(slotStart);
+  const slotEndMin = parseTimeToMinutes(slotEnd);
+  return jobStartMin >= slotStartMin && jobEndMin <= slotEndMin;
+}
+
+function getEndTime(timeStr: string, durationStr: string): string {
+  const startMin = parseTimeToMinutes(timeStr);
+  const endMin = startMin + parseDurationToMinutes(durationStr);
+  const hrs = Math.floor(endMin / 60) % 24;
+  const mins = endMin % 60;
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
+function getDayOfWeek(dateStr: string): string {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const dateObj = new Date(year, month - 1, day);
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[dateObj.getDay()];
 }
 
 const CUSTOMERS = [
@@ -73,8 +119,8 @@ function Toggle({ active, onToggle }: { active: boolean; onToggle: () => void })
   );
 }
 
-function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons = [], onToggle, workload }: { 
-  worker: Worker; isSelected: boolean; isSuggested: boolean; matchingSkills: string[]; reasons?: string[]; onToggle: () => void; workload?: string | null;
+function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons = [], onToggle, workload, isRecommendedBadge, isBestRecommendation, conflict }: { 
+  worker: Worker; isSelected: boolean; isSuggested: boolean; matchingSkills: string[]; reasons?: string[]; onToggle: () => void; workload?: string | null; isRecommendedBadge?: boolean; isBestRecommendation?: boolean; conflict?: string | null;
 }) {
   const [showAI, setShowAI] = useState(true);
 
@@ -82,8 +128,8 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
     <div 
       style={{
         padding: '16px', borderRadius: 20, border: '1.5px solid',
-        borderColor: isSelected ? BLUE : '#F1F5F9',
-        background: isSelected ? '#EFF6FF' : '#fff',
+        borderColor: conflict ? '#FCA5A5' : isSelected ? BLUE : '#F1F5F9',
+        background: conflict ? '#FFF5F5' : isSelected ? '#EFF6FF' : '#fff',
         cursor: 'pointer',
         transition: 'all 0.2s',
         display: 'flex', flexDirection: 'column', gap: 12,
@@ -125,7 +171,18 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
 
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#1E293B' }}>{worker.name}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 8 }}>
+              {worker.name}
+              {isRecommendedBadge && (
+                <span style={{ 
+                  fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 6,
+                  background: '#FFF7ED', color: ORANGE, border: `1px solid #FFEDD5`,
+                  textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 2
+                }}>
+                  <Sparkles size={8} /> Recommended
+                </span>
+              )}
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <span style={{ fontSize: 13, fontWeight: 800, color: '#F59E0B' }}>★</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#1E293B' }}>{worker.rating || '4.5'}</span>
@@ -136,7 +193,7 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
             <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{worker.totalJobs || 0} jobs</div>
             <div style={{ width: 3, height: 3, borderRadius: '50%', background: '#CBD5E1' }} />
             <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>
-              {workload ? `${workload} jobs assigned` : `${worker.reliability}/5 rel.`}
+              {workload ? `${workload} hours scheduled` : `${worker.reliability}/5 rel.`}
             </div>
           </div>
         </div>
@@ -150,6 +207,17 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
           {isSelected && <CheckCircle2 size={14} color="#fff" strokeWidth={3} />}
         </div>
       </div>
+
+      {conflict && (
+        <div style={{ 
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: '#FEF2F2', border: '1px solid #FEE2E2',
+          borderRadius: 12, padding: '8px 12px', marginTop: 4
+        }}>
+          <AlertTriangle size={14} color="#DC2626" />
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#DC2626' }}>{conflict}</span>
+        </div>
+      )}
 
       {/* AI Reasoning Section */}
       {isSuggested && reasons.length > 0 && (
@@ -192,6 +260,26 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
         </div>
       )}
 
+      {isBestRecommendation && (
+        <div style={{ 
+          marginTop: 4,
+          alignSelf: 'flex-start',
+          background: '#FFF7ED', 
+          color: ORANGE, 
+          border: '1px solid #FFEDD5',
+          padding: '4px 10px',
+          borderRadius: 8,
+          fontSize: 10,
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4
+        }}>
+          <Sparkles size={10} /> Best Recommendation
+        </div>
+      )}
+
       {/* 
       {(!isSuggested || showAI) && (
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
@@ -226,7 +314,7 @@ function WorkerCard({ worker, isSelected, isSuggested, matchingSkills, reasons =
   );
 }
 
-export function CreateJobModal({ job, defaultDate, workers, clients, defaultWorkerIds = [], initialStep, onSave, onClose }: Props) {
+export function CreateJobModal({ job, defaultDate, workers, clients, jobs, defaultWorkerIds = [], initialStep, onSave, onClose }: Props) {
   const { t } = useLanguage();
   const [step, setStep]                   = useState<'details' | 'workers'>(initialStep || 'details');
   const [client, setClient]               = useState(job?.client ?? '');
@@ -243,6 +331,71 @@ export function CreateJobModal({ job, defaultDate, workers, clients, defaultWork
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const isEdit = !!job;
+
+  const busyWorkerIds = useMemo(() => {
+    const busy = new Set<string>();
+    if (!date || !time || !estimatedDuration) return busy;
+    
+    // 1. Overlapping jobs on the same day
+    jobs.forEach(j => {
+      if (job && j.id === job.id) return;
+      if (j.date === date && checkTimeOverlap(j.time, j.estimatedDuration, time, estimatedDuration)) {
+        (j.assignedWorkers || []).forEach(id => busy.add(id));
+      }
+    });
+
+    // 2. Recurring workers who are outside their availability slot
+    workers.forEach(w => {
+      if (w.workType === 'recurring') {
+        const jobDayOfWeek = getDayOfWeek(date);
+        if (w.recurringDays?.includes(jobDayOfWeek)) {
+          const slot = w.recurringTimeSlot || '';
+          if (slot.includes(' - ')) {
+            const [slotStart, slotEnd] = slot.split(' - ');
+            if (!isJobInsideAvailableSlot(time, estimatedDuration, slotStart, slotEnd)) {
+              busy.add(w.id);
+            }
+          }
+        }
+      }
+    });
+
+    return busy;
+  }, [jobs, date, time, estimatedDuration, job, workers]);
+
+  const getWorkerConflict = (workerId: string) => {
+    if (!date || !time || !estimatedDuration) return null;
+
+    // 1. Overlapping assigned jobs
+    const overlappingJob = jobs.find(j => {
+      if (job && j.id === job.id) return false;
+      if (j.date === date && (j.assignedWorkers || []).includes(workerId)) {
+        return checkTimeOverlap(j.time, j.estimatedDuration, time, estimatedDuration);
+      }
+      return false;
+    });
+
+    if (overlappingJob) {
+      return `Already assigned: ${overlappingJob.client} (${overlappingJob.time} - ${getEndTime(overlappingJob.time, overlappingJob.estimatedDuration)})`;
+    }
+
+    // 2. Outside availability slot
+    const workerObj = workers.find(w => w.id === workerId);
+    if (workerObj && workerObj.workType === 'recurring') {
+      const jobDayOfWeek = getDayOfWeek(date);
+      if (workerObj.recurringDays?.includes(jobDayOfWeek)) {
+        const slot = workerObj.recurringTimeSlot || '';
+        if (slot.includes(' - ')) {
+          const [slotStart, slotEnd] = slot.split(' - ');
+          if (!isJobInsideAvailableSlot(time, estimatedDuration, slotStart, slotEnd)) {
+            return `Outside availability: Available only ${slotStart} to ${slotEnd}`;
+          }
+        }
+      }
+    }
+
+    return null;
+  };
 
   const suggestionResults = useMemo(() => {
     const dummyJob: any = {
@@ -264,10 +417,54 @@ export function CreateJobModal({ job, defaultDate, workers, clients, defaultWork
       notes,
     };
 
-    return suggestTeam(dummyJob, workers, new Set());
-  }, [workers, client, location, date, time, type, requiredSkills, workersNeeded, priority]);
+    return suggestTeam(dummyJob, workers, busyWorkerIds);
+  }, [workers, client, location, date, time, type, requiredSkills, workersNeeded, priority, busyWorkerIds]);
 
   const recommendedIds = useMemo(() => suggestionResults.recommendedTeam.map(t => t.worker.id), [suggestionResults]);
+
+  const systemSuggestedIds = recommendedIds;
+
+  const isSystemSuggestedActive = useMemo(() => {
+    return assignedWorkers.length > 0 &&
+      assignedWorkers.length === systemSuggestedIds.length &&
+      assignedWorkers.every(id => systemSuggestedIds.includes(id));
+  }, [assignedWorkers, systemSuggestedIds]);
+
+  const selectedWorkers = useMemo(() => {
+    return workers.filter(w => assignedWorkers.includes(w.id));
+  }, [workers, assignedWorkers]);
+
+  const suggestionReasonsMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    suggestionResults.recommendedTeam.forEach(item => {
+      map[item.worker.id] = item.reasons;
+    });
+    return map;
+  }, [suggestionResults]);
+
+  const bestPairingWorkers = useMemo(() => {
+    if (isSystemSuggestedActive || assignedWorkers.length === 0) {
+      return [];
+    }
+    return workers.filter(w => {
+      if (assignedWorkers.includes(w.id)) return false;
+      if (systemSuggestedIds.includes(w.id)) return false; // suggested ones always go to Other Available if deselected
+      
+      return selectedWorkers.some(sw => 
+        sw.synergyWith?.includes(w.id) || w.synergyWith?.includes(sw.id)
+      );
+    });
+  }, [isSystemSuggestedActive, assignedWorkers, workers, selectedWorkers, systemSuggestedIds]);
+
+  const otherAvailableWorkers = useMemo(() => {
+    return workers.filter(w => {
+      if (assignedWorkers.includes(w.id)) return false;
+      if (bestPairingWorkers.some(bp => bp.id === w.id)) return false;
+      return true;
+    });
+  }, [workers, assignedWorkers, bestPairingWorkers]);
+
+  const showBestPairingSection = !isSystemSuggestedActive && assignedWorkers.length > 0;
 
   useEffect(() => {
     if (initialStep) {
@@ -275,11 +472,16 @@ export function CreateJobModal({ job, defaultDate, workers, clients, defaultWork
     }
   }, [initialStep]);
 
+  const [isWorkerSelectionInitialized, setIsWorkerSelectionInitialized] = useState(false);
+
   useEffect(() => {
-    if (step === 'workers' && assignedWorkers.length === 0) {
-      setAssignedWorkers(recommendedIds);
+    if (step === 'workers' && !isWorkerSelectionInitialized && recommendedIds.length > 0) {
+      if (assignedWorkers.length === 0) {
+        setAssignedWorkers(recommendedIds);
+      }
+      setIsWorkerSelectionInitialized(true);
     }
-  }, [step, recommendedIds]);
+  }, [step, recommendedIds, isWorkerSelectionInitialized, assignedWorkers]);
 
   useEffect(() => {
     if (!job && type) {
@@ -615,36 +817,83 @@ export function CreateJobModal({ job, defaultDate, workers, clients, defaultWork
             }}>
               {/* Personnel Selection Content */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-                {/* System Suggested Section */}
+                {/* Section 1: Selected / System Suggested Workers */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#FFF7ED', color: ORANGE, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Sparkles size={18} />
+                    <div style={{ 
+                      width: 32, height: 32, borderRadius: 8, 
+                      background: isSystemSuggestedActive ? '#FFF7ED' : '#EFF6FF', 
+                      color: isSystemSuggestedActive ? ORANGE : BLUE, 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                    }}>
+                      {isSystemSuggestedActive ? <Sparkles size={18} /> : <Users size={18} />}
                     </div>
                     <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1E293B' }}>
-                      System Suggested Workers
+                      {isSystemSuggestedActive ? 'System Suggested Workers' : 'Selected Workers'}
                     </h3>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20 }}>
-                    {suggestionResults.recommendedTeam.map(({ worker, reasons }, index) => (
-                      <WorkerCard 
-                        key={worker.id}
-                        worker={worker}
-                        isSelected={assignedWorkers.includes(worker.id)}
-                        isSuggested={true}
-                        reasons={reasons}
-                        matchingSkills={worker.skills.filter(s => requiredSkills.includes(s))}
-                        onToggle={() => {
-                          if (assignedWorkers.includes(worker.id)) setAssignedWorkers(prev => prev.filter(id => id !== worker.id));
-                          else setAssignedWorkers(prev => [...prev, worker.id]);
-                        }}
-                        workload={index === 0 ? "10/12" : index === 1 ? "3/12" : null}
-                      />
-                    ))}
-                  </div>
+                  {selectedWorkers.length === 0 ? (
+                    <div style={{ padding: '24px', borderRadius: 20, border: '1.5px dashed #CBD5E1', textAlign: 'center', color: '#64748B', fontSize: 14, fontWeight: 600 }}>
+                      No workers selected. Click on any available worker below to assign them.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20, alignItems: 'start' }}>
+                      {selectedWorkers.map((worker, index) => (
+                        <WorkerCard 
+                          key={worker.id}
+                          worker={worker}
+                          isSelected={true}
+                          isSuggested={systemSuggestedIds.includes(worker.id)}
+                          reasons={suggestionReasonsMap[worker.id] || []}
+                          matchingSkills={worker.skills.filter(s => requiredSkills.includes(s))}
+                          onToggle={() => {
+                            setAssignedWorkers(prev => prev.filter(id => id !== worker.id));
+                          }}
+                          workload={index === 0 ? "10/12" : index === 1 ? "3/12" : null}
+                          isBestRecommendation={systemSuggestedIds[0] === worker.id}
+                          conflict={getWorkerConflict(worker.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* Other Available Workers Section */}
+                {/* Section 2: Best Pairing Workers */}
+                {showBestPairingSection && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F0FDF4', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Sparkles size={18} />
+                      </div>
+                      <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1E293B' }}>
+                        Best Pairing Workers
+                      </h3>
+                    </div>
+                    {bestPairingWorkers.length === 0 ? (
+                      <div style={{ padding: '20px', borderRadius: 20, border: '1.5px dashed #E2E8F0', textAlign: 'center', color: '#94A3B8', fontSize: 13, fontWeight: 600 }}>
+                        No specific pairing recommendations for currently selected workers.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20, alignItems: 'start' }}>
+                        {bestPairingWorkers.map(worker => (
+                          <WorkerCard 
+                            key={worker.id}
+                            worker={worker}
+                            isSelected={false}
+                            isSuggested={false}
+                            matchingSkills={worker.skills.filter(s => requiredSkills.includes(s))}
+                            onToggle={() => {
+                              setAssignedWorkers(prev => [...prev, worker.id]);
+                            }}
+                            conflict={getWorkerConflict(worker.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Section 3: Other Available Workers */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F8FAFD', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -654,23 +903,28 @@ export function CreateJobModal({ job, defaultDate, workers, clients, defaultWork
                       Other Available Workers
                     </h3>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20 }}>
-                    {workers
-                      .filter(w => !recommendedIds.includes(w.id))
-                      .map(worker => (
-                      <WorkerCard 
-                        key={worker.id}
-                        worker={worker}
-                        isSelected={assignedWorkers.includes(worker.id)}
-                        isSuggested={false}
-                        matchingSkills={worker.skills.filter(s => requiredSkills.includes(s))}
-                        onToggle={() => {
-                          if (assignedWorkers.includes(worker.id)) setAssignedWorkers(prev => prev.filter(id => id !== worker.id));
-                          else setAssignedWorkers(prev => [...prev, worker.id]);
-                        }}
-                      />
-                    ))}
-                  </div>
+                  {otherAvailableWorkers.length === 0 ? (
+                    <div style={{ padding: '20px', borderRadius: 20, border: '1.5px dashed #E2E8F0', textAlign: 'center', color: '#94A3B8', fontSize: 13, fontWeight: 600 }}>
+                      No other available workers.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20, alignItems: 'start' }}>
+                      {otherAvailableWorkers.map(worker => (
+                        <WorkerCard 
+                          key={worker.id}
+                          worker={worker}
+                          isSelected={false}
+                          isSuggested={false}
+                          matchingSkills={worker.skills.filter(s => requiredSkills.includes(s))}
+                          onToggle={() => {
+                            setAssignedWorkers(prev => [...prev, worker.id]);
+                          }}
+                          isRecommendedBadge={systemSuggestedIds.includes(worker.id)}
+                          conflict={getWorkerConflict(worker.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

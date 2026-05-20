@@ -11,9 +11,10 @@ interface Props {
   onBack: () => void;
   onJobClick: (job: Job) => void;
   allWorkers: Worker[];
+  onEdit: () => void;
 }
 
-export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, allWorkers }: Props) {
+export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, allWorkers, onEdit }: Props) {
   const { t } = useLanguage();
   const [viewMode, setViewMode] = useState<'list' | 'month' | 'day'>('day');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -69,6 +70,7 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, allWork
 
         <div style={{ display: 'flex', gap: 12 }}>
           <button
+            onClick={onEdit}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
               background: '#fff', border: '1.5px solid #E2E8F0',
@@ -84,9 +86,9 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, allWork
       {/* Stats Section */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 32 }}>
         <StatCard label={t('totalJobs')} value={worker.totalJobs?.toString() || '0'} color={BLUE} />
-        <StatCard label="Attendance" value={`${attendancePercentage}%`} color="#16A34A" />
+        <StatCard label="Present" value={`${attendancePercentage}%`} color="#16A34A" />
         <StatCard 
-          label="Inconsistency" 
+          label="Absent" 
           value={`${inconsistencyScore}%`} 
           color={inconsistencyScore > 5 ? '#DC2626' : ORANGE}
           info="Rate of delayed starts or unannounced absences."
@@ -126,7 +128,6 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, allWork
             </div>
 
             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 24, textAlign: 'left' }}>
-              <ProfileInfo icon={<Mail size={16} />} label="Email" value={worker.email || (worker.name.toLowerCase().replace(' ', '.') + '@liman-services.at')} />
               <ProfileInfo icon={<Phone size={16} />} label="Phone" value={worker.phone || "+43 664 123 45 67"} />
               <ProfileInfo icon={<MapPin size={16} />} label="Nationality" value={worker.nationality || "Austrian"} />
             </div>
@@ -156,13 +157,42 @@ export function WorkerDetail({ worker, assignedJobs, onBack, onJobClick, allWork
                </>
              )}
 
+             <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, color: '#1E293B' }}>Employment & Schedule</h3>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: '#475569' }}>
+                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: BLUE }} />
+                   <span>Type: <strong style={{ color: '#1E293B', textTransform: 'capitalize' }}>{worker.employeeType || 'permanent'}</strong></span>
+                </div>
+                {worker.employeeType === 'temporary' && (worker.availabilityStart || worker.availabilityEnd) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#64748B', background: '#F8FAFD', padding: '8px 12px', borderRadius: 10, border: '1px solid #E2E8F0' }}>
+                    <CalendarIcon size={14} color={BLUE} />
+                    <span>{worker.availabilityStart || '?'} to {worker.availabilityEnd || '?'}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: '#475569' }}>
+                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: ORANGE }} />
+                   <span>Preference: <strong style={{ color: '#1E293B', textTransform: 'capitalize' }}>{worker.workType || 'adhoc'}</strong></span>
+                </div>
+                {worker.workType === 'recurring' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: '#F8FAFD', padding: '12px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>Recurring Schedule</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>
+                      {worker.recurringDays && worker.recurringDays.length > 0 ? worker.recurringDays.join(', ') : 'No days selected'}
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: BLUE }}>
+                       Time: {worker.recurringTimeSlot || '08:00 - 16:00'}
+                    </div>
+                  </div>
+                )}
+             </div>
+
              <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, color: '#1E293B' }}>Additional Info</h3>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: '#475569' }}>
                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: worker.canDrive ? '#16A34A' : '#CBD5E1' }} />
                    <span>Driver's License: {worker.canDrive ? 'Yes' : 'No'}</span>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {worker.languages.map(l => (
                     <span key={l} style={{ background: '#FFF7ED', color: '#C2410C', padding: '6px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, border: '1px solid #FFEDD5' }}>{l}</span>
                   ))}

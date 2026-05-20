@@ -33,6 +33,12 @@ export interface Worker {
   synergyWith?: string[]; // IDs of workers they work well with
   conflictsWith?: string[]; // IDs of workers they have conflicts with
   tags?: string[]; // Custom tags for AI suggestions (e.g. "early-bird", "industrial-specialist")
+  employeeType?: 'permanent' | 'temporary';
+  availabilityStart?: string;
+  availabilityEnd?: string;
+  workType?: 'recurring' | 'adhoc';
+  recurringDays?: string[];
+  recurringTimeSlot?: string;
 }
 
 export type JobPriority = 'high' | 'medium' | 'low';

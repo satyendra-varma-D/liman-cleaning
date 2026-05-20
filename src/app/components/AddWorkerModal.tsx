@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { X, UserPlus, Shield, Star, Globe, Briefcase, Plus, ArrowLeft, Phone, Mail, Flag, Car, Info } from 'lucide-react';
-import type { Worker } from '../types';
+import { X, UserPlus, Shield, Plus, ArrowLeft, Phone, Flag, Car, Check, Briefcase } from 'lucide-react';
+import type { Worker, Client } from '../types';
 import { BLUE, ORANGE } from '../constants';
 
 interface Props {
+  worker?: Worker | null;
+  clients: Client[];
   onSave: (worker: Omit<Worker, 'available'>) => void;
   onClose: () => void;
 }
@@ -11,25 +13,57 @@ interface Props {
 const ALL_SKILLS = ['general', 'window', 'snow', 'special', 'machine'];
 const ALL_LANGUAGES = ['DE', 'EN', 'PL', 'RO', 'TR', 'AR', 'HR', 'SL', 'SV', 'IT'];
 
-export function AddWorkerModal({ onSave, onClose }: Props) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [nationality, setNationality] = useState('');
-  const [canDrive, setCanDrive] = useState(false);
-  const [isSupervisor, setIsSupervisor] = useState(false);
-  const [selectedSkills, setSelectedSkills] = useState<string[]>(['general']);
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['DE']);
-  const [reliability, setReliability] = useState(5);
-  const [pastCustomers, setPastCustomers] = useState('');
-  const [tags, setTags] = useState('');
+export function AddWorkerModal({ worker, clients, onSave, onClose }: Props) {
+  const [name, setName] = useState(worker ? worker.name : '');
+  const [phone, setPhone] = useState(worker ? worker.phone || '' : '');
+  const [nationality, setNationality] = useState(worker ? worker.nationality || '' : '');
+  const [canDrive, setCanDrive] = useState(worker ? worker.canDrive || false : false);
+  const [isSupervisor, setIsSupervisor] = useState(worker ? worker.isSupervisor || false : false);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>(worker ? worker.skills : ['general']);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(worker ? worker.languages : ['DE']);
+  const [reliability, setReliability] = useState(worker ? worker.reliability : 5);
+  const [pastCustomers, setPastCustomers] = useState<string[]>(worker ? worker.pastCustomers || [] : []);
+  const [tags, setTags] = useState(worker ? (worker.tags || []).join(', ') : '');
+
+  // New Fields
+  const [employeeType, setEmployeeType] = useState<'permanent' | 'temporary'>(worker ? worker.employeeType || 'permanent' : 'permanent');
+  const [availabilityStart, setAvailabilityStart] = useState(worker ? worker.availabilityStart || '' : '');
+  const [availabilityEnd, setAvailabilityEnd] = useState(worker ? worker.availabilityEnd || '' : '');
+  const [workType, setWorkType] = useState<'recurring' | 'adhoc'>(worker ? worker.workType || 'adhoc' : 'adhoc');
+  const [recurringDays, setRecurringDays] = useState<string[]>(worker ? worker.recurringDays || [] : []);
+  const [recurringStart, setRecurringStart] = useState(() => {
+    if (worker && worker.recurringTimeSlot && worker.recurringTimeSlot.includes(' - ')) {
+      return worker.recurringTimeSlot.split(' - ')[0];
+    }
+    return '08:00';
+  });
+  const [recurringEnd, setRecurringEnd] = useState(() => {
+    if (worker && worker.recurringTimeSlot && worker.recurringTimeSlot.includes(' - ')) {
+      return worker.recurringTimeSlot.split(' - ')[1];
+    }
+    return '16:00';
+  });
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [clientSearch, setClientSearch] = useState('');
+
+  const filteredClients = clients.filter(c => 
+    c.name.toLowerCase().includes(clientSearch.toLowerCase())
+  );
+
+  const togglePastCustomer = (clientName: string) => {
+    setPastCustomers(prev => 
+      prev.includes(clientName) 
+        ? prev.filter(c => c !== clientName) 
+        : [...prev, clientName]
+    );
+  };
 
   const handleSave = () => {
     if (!name) return;
     onSave({
-      id: 'w' + Math.random().toString(36).substr(2, 9),
+      id: worker ? worker.id : 'w' + Math.random().toString(36).substr(2, 9),
       name,
-      email,
       phone,
       nationality,
       canDrive,
@@ -37,12 +71,18 @@ export function AddWorkerModal({ onSave, onClose }: Props) {
       skills: selectedSkills,
       languages: selectedLanguages,
       reliability,
-      pastCustomers: pastCustomers.split(',').map(c => c.trim()).filter(c => c !== ''),
+      pastCustomers,
       tags: tags.split(',').map(t => t.trim()).filter(t => t !== ''),
-      baseAvailable: true,
-      totalJobs: 0,
-      rating: 5.0,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name || 'default'}`
+      baseAvailable: worker ? worker.baseAvailable : true,
+      totalJobs: worker ? worker.totalJobs || 0 : 0,
+      rating: worker ? worker.rating || 5.0 : 5.0,
+      avatar: worker ? worker.avatar : `https://api.dicebear.com/7.x/avataaars/svg?seed=${name || 'default'}`,
+      employeeType,
+      availabilityStart: employeeType === 'temporary' ? availabilityStart : undefined,
+      availabilityEnd: employeeType === 'temporary' ? availabilityEnd : undefined,
+      workType,
+      recurringDays: workType === 'recurring' ? recurringDays : undefined,
+      recurringTimeSlot: workType === 'recurring' ? `${recurringStart} - ${recurringEnd}` : undefined,
     });
   };
 
@@ -55,7 +95,7 @@ export function AddWorkerModal({ onSave, onClose }: Props) {
   };
 
   return (
-    <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', padding: '16px 24px' }}>
+    <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', padding: '16px 24px', boxSizing: 'border-box' }}>
       {/* Top Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -73,10 +113,10 @@ export function AddWorkerModal({ onSave, onClose }: Props) {
           </button>
           <div>
             <h1 style={{ margin: 0, fontSize: 32, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.03em' }}>
-              Add New Worker
+              {worker ? 'Edit Worker Profile' : 'Add New Worker'}
             </h1>
             <p style={{ margin: '4px 0 0 0', color: '#64748B', fontSize: 14, fontWeight: 600 }}>
-              Create a new personnel profile in the system
+              {worker ? `Modify details for ${worker.name}` : 'Create a new personnel profile in the system'}
             </p>
           </div>
         </div>
@@ -132,19 +172,6 @@ export function AddWorkerModal({ onSave, onClose }: Props) {
               </div>
 
               <div>
-                <Label>Email Address</Label>
-                <div style={{ position: 'relative' }}>
-                  <input 
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="j.schmidt@liman.at"
-                    style={inputStyle}
-                  />
-                  <Mail size={18} style={iconInputStyle} />
-                </div>
-              </div>
-
-              <div>
                 <Label>Phone Number</Label>
                 <div style={{ position: 'relative' }}>
                   <input 
@@ -170,7 +197,7 @@ export function AddWorkerModal({ onSave, onClose }: Props) {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, gridColumn: 'span 2' }}>
                 <div 
                   onClick={() => setCanDrive(!canDrive)}
                   style={{
@@ -191,7 +218,182 @@ export function AddWorkerModal({ onSave, onClose }: Props) {
             </div>
           </div>
 
-          {/* Section 2: Skills & Expertise */}
+          {/* Section 2: Employment Details */}
+          <div style={{ background: '#fff', borderRadius: 24, padding: 32, border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+            <h2 style={{ margin: '0 0 24px 0', fontSize: 18, fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Briefcase size={20} color={BLUE} /> Employment & Availability
+            </h2>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+              {/* Permanent vs Temporary */}
+              <div>
+                <Label>Employee Type</Label>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => setEmployeeType('permanent')}
+                    style={{
+                      flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid',
+                      borderColor: employeeType === 'permanent' ? BLUE : '#E2E8F0',
+                      background: employeeType === 'permanent' ? '#EFF6FF' : '#fff',
+                      color: employeeType === 'permanent' ? BLUE : '#64748B',
+                      fontSize: 14, fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                  >
+                    Permanent
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEmployeeType('temporary')}
+                    style={{
+                      flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid',
+                      borderColor: employeeType === 'temporary' ? BLUE : '#E2E8F0',
+                      background: employeeType === 'temporary' ? '#EFF6FF' : '#fff',
+                      color: employeeType === 'temporary' ? BLUE : '#64748B',
+                      fontSize: 14, fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                  >
+                    Temporary
+                  </button>
+                </div>
+              </div>
+
+              {/* Recurring vs Adhoc */}
+              <div>
+                <Label>Work Preference</Label>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => setWorkType('adhoc')}
+                    style={{
+                      flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid',
+                      borderColor: workType === 'adhoc' ? BLUE : '#E2E8F0',
+                      background: workType === 'adhoc' ? '#EFF6FF' : '#fff',
+                      color: workType === 'adhoc' ? BLUE : '#64748B',
+                      fontSize: 14, fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                  >
+                    Adhoc Work
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWorkType('recurring')}
+                    style={{
+                      flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid',
+                      borderColor: workType === 'recurring' ? BLUE : '#E2E8F0',
+                      background: workType === 'recurring' ? '#EFF6FF' : '#fff',
+                      color: workType === 'recurring' ? BLUE : '#64748B',
+                      fontSize: 14, fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                  >
+                    Recurring Work
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* If Temporary: Start & End Dates */}
+            {employeeType === 'temporary' && (
+              <div style={{ 
+                background: '#F8FAFD', borderRadius: 16, padding: 20, 
+                border: '1px solid #E2E8F0', display: 'grid', gridTemplateColumns: '1fr 1fr', 
+                gap: 16, marginBottom: 24
+              }}>
+                <div>
+                  <Label>Availability Start Date</Label>
+                  <input 
+                    type="date"
+                    value={availabilityStart}
+                    onChange={e => setAvailabilityStart(e.target.value)}
+                    style={{ ...inputStyle, paddingLeft: 16 }}
+                  />
+                </div>
+                <div>
+                  <Label>Availability End Date</Label>
+                  <input 
+                    type="date"
+                    value={availabilityEnd}
+                    onChange={e => setAvailabilityEnd(e.target.value)}
+                    style={{ ...inputStyle, paddingLeft: 16 }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* If Recurring: Days and Slots */}
+            {workType === 'recurring' && (
+              <div style={{ 
+                background: '#F8FAFD', borderRadius: 16, padding: 20, 
+                border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', 
+                gap: 16, marginBottom: 24
+              }}>
+                <div>
+                  <Label>Recurring Days (Monday to Friday)</Label>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => {
+                      const isSelected = recurringDays.includes(day);
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => {
+                            setRecurringDays(prev => 
+                              prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+                            );
+                          }}
+                          style={{
+                            padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 800,
+                            border: '1.5px solid',
+                            borderColor: isSelected ? BLUE : '#CBD5E1',
+                            background: isSelected ? BLUE : '#fff',
+                            color: isSelected ? '#fff' : '#475569',
+                            cursor: 'pointer', transition: 'all 0.15s'
+                          }}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Preferred Time Range</Label>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <input 
+                        type="time"
+                        value={recurringStart}
+                        onChange={e => setRecurringStart(e.target.value)}
+                        style={{ 
+                          width: '100%', padding: '12px 14px', borderRadius: 12,
+                          border: '1.5px solid #CBD5E1', fontSize: 14, fontWeight: 700,
+                          color: '#1E293B', outline: 'none', boxSizing: 'border-box'
+                        }}
+                      />
+                      <span style={{ fontSize: 10, fontWeight: 800, color: '#94A3B8', position: 'absolute', top: -8, left: 10, background: '#F8FAFD', padding: '0 4px' }}>START TIME</span>
+                    </div>
+                    <span style={{ fontWeight: 800, color: '#64748B' }}>to</span>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <input 
+                        type="time"
+                        value={recurringEnd}
+                        onChange={e => setRecurringEnd(e.target.value)}
+                        style={{ 
+                          width: '100%', padding: '12px 14px', borderRadius: 12,
+                          border: '1.5px solid #CBD5E1', fontSize: 14, fontWeight: 700,
+                          color: '#1E293B', outline: 'none', boxSizing: 'border-box'
+                        }}
+                      />
+                      <span style={{ fontSize: 10, fontWeight: 800, color: '#94A3B8', position: 'absolute', top: -8, left: 10, background: '#F8FAFD', padding: '0 4px' }}>END TIME</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 3: Skills & Expertise */}
           <div style={{ background: '#fff', borderRadius: 24, padding: 32, border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
             <h2 style={{ margin: '0 0 24px 0', fontSize: 18, fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 10 }}>
               <Briefcase size={20} color={BLUE} /> Skills & Experience
@@ -235,20 +437,107 @@ export function AddWorkerModal({ onSave, onClose }: Props) {
               ))}
             </div>
 
-            <Label>Past Customers / References</Label>
-            <textarea 
-              value={pastCustomers}
-              onChange={e => setPastCustomers(e.target.value)}
-              placeholder="e.g. Raiffeisen Bank, Billa, Hotel Wien"
-              style={{ ...inputStyle, height: 80, resize: 'none', paddingTop: 12, marginBottom: 20 }}
-            />
+            {/* Multiselection dropdown for pastWorkedWith / pastCustomers */}
+            <Label>Past Worked With (Clients)</Label>
+            <div style={{ position: 'relative', marginBottom: 24 }}>
+              {/* Selected Chips */}
+              <div style={{ 
+                display: 'flex', flexWrap: 'wrap', gap: 8, padding: '10px 14px', 
+                border: '1.5px solid #E2E8F0', borderRadius: 14, minHeight: 48,
+                background: '#fff', cursor: 'pointer', alignItems: 'center'
+              }} onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+                {pastCustomers.length === 0 ? (
+                  <span style={{ color: '#94A3B8', fontSize: 14, fontWeight: 600 }}>Select clients...</span>
+                ) : (
+                  pastCustomers.map(clientName => (
+                    <span key={clientName} style={{ 
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      background: '#EFF6FF', color: BLUE, padding: '4px 10px', 
+                      borderRadius: 8, fontSize: 12, fontWeight: 700, border: '1px solid #DBEAFE'
+                    }}>
+                      {clientName}
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); togglePastCustomer(clientName); }}
+                        style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: BLUE, display: 'flex', alignItems: 'center' }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))
+                )}
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', color: '#94A3B8' }}>
+                  <Briefcase size={16} />
+                </div>
+              </div>
+
+              {/* Dropdown List */}
+              {isDropdownOpen && (
+                <>
+                  <div 
+                    style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                    onClick={() => setIsDropdownOpen(false)} 
+                  />
+                  <div style={{ 
+                    position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 8,
+                    background: '#fff', border: '1px solid #E2E8F0', borderRadius: 16,
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.08)', zIndex: 999, maxHeight: 250,
+                    overflowY: 'auto', padding: 8
+                  }}>
+                    <input 
+                      type="text"
+                      value={clientSearch}
+                      onChange={e => setClientSearch(e.target.value)}
+                      placeholder="Search clients..."
+                      onClick={e => e.stopPropagation()}
+                      style={{ 
+                        width: '100%', padding: '10px 14px', borderRadius: 10,
+                        border: '1.5px solid #F1F5F9', outline: 'none', fontSize: 13,
+                        fontWeight: 600, color: '#1E293B', marginBottom: 8, boxSizing: 'border-box'
+                      }}
+                    />
+                    {filteredClients.length === 0 ? (
+                      <div style={{ padding: '12px', fontSize: 13, color: '#94A3B8', textAlign: 'center', fontWeight: 600 }}>
+                        No clients found
+                      </div>
+                    ) : (
+                      filteredClients.map(c => {
+                        const isSelected = pastCustomers.includes(c.name);
+                        return (
+                          <div 
+                            key={c.id}
+                            onClick={() => togglePastCustomer(c.name)}
+                            style={{ 
+                              padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                              color: isSelected ? BLUE : '#475569',
+                              background: isSelected ? '#EFF6FF' : 'transparent',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              transition: 'all 0.15s'
+                            }}
+                            onMouseEnter={e => {
+                              if (!isSelected) e.currentTarget.style.background = '#F8FAFD';
+                            }}
+                            onMouseLeave={e => {
+                              if (!isSelected) e.currentTarget.style.background = 'transparent';
+                            }}
+                          >
+                            <span>{c.name}</span>
+                            {isSelected && <Check size={14} strokeWidth={3} />}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
 
             <Label>AI Optimization Tags (Comma separated)</Label>
             <textarea 
               value={tags}
               onChange={e => setTags(e.target.value)}
               placeholder="e.g. early-bird, heavy-lifting, industrial-specialist, polite"
-              style={{ ...inputStyle, height: 80, resize: 'none', paddingTop: 12 }}
+              style={{ ...inputStyle, height: 80, resize: 'none', paddingTop: 12, paddingLeft: 16 }}
             />
           </div>
         </div>
@@ -275,6 +564,8 @@ export function AddWorkerModal({ onSave, onClose }: Props) {
               <SummaryItem label="Skills" value={`${selectedSkills.length} assigned`} />
               <SummaryItem label="Languages" value={`${selectedLanguages.length} spoken`} />
               <SummaryItem label="Driver" value={canDrive ? 'Yes' : 'No'} />
+              <SummaryItem label="Employee Type" value={employeeType} />
+              <SummaryItem label="Work Preference" value={workType} />
               <SummaryItem label="Reliability" value={`${reliability}/5 Rating`} />
             </div>
           </div>
@@ -307,14 +598,6 @@ export function AddWorkerModal({ onSave, onClose }: Props) {
             </div>
           </div>
 
-          <div style={{ background: '#EFF6FF', borderRadius: 24, padding: 24, border: '1px solid #DBEAFE' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: 15, fontWeight: 800, color: BLUE, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Info size={18} /> Onboarding Tip
-            </h3>
-            <p style={{ margin: 0, fontSize: 13, color: '#1E3A8A', fontWeight: 600, lineHeight: 1.5 }}>
-              Workers with multiple skills and a driver's license are prioritized for complex jobs.
-            </p>
-          </div>
         </div>
       </div>
     </div>
@@ -325,7 +608,7 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 8 }}>
       <span style={{ fontSize: 12, opacity: 0.8, fontWeight: 600 }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 800 }}>{value}</span>
+      <span style={{ fontSize: 13, fontWeight: 800, textTransform: 'capitalize' }}>{value}</span>
     </div>
   );
 }
@@ -348,6 +631,7 @@ const inputStyle: React.CSSProperties = {
   fontWeight: 600,
   color: '#1E293B',
   transition: 'border-color 0.2s',
+  boxSizing: 'border-box'
 };
 
 const iconInputStyle: React.CSSProperties = {

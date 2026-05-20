@@ -2,10 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { 
   ChevronLeft, ChevronRight, Search, Filter, Sparkles, Save, Send, 
   Clock, MapPin, Users, Truck, Info, AlertTriangle, CheckCircle2, 
-  MoreHorizontal, Phone, MessageSquare, ChevronDown, Plus, ExternalLink,
+  MoreHorizontal, Phone, MessageSquare, ChevronDown, Plus, ExternalLink, X,
   Calendar as CalendarIcon, Briefcase, FileText, AlertCircle, List, CloudSnow, Cloud, Sun, Droplets, Thermometer
 } from 'lucide-react';
-import type { Job, Worker, Vehicle, JobStatus } from '../types';
+import type { Job, Worker, Vehicle, JobStatus, Client } from '../types';
 import { BLUE, ORANGE } from '../constants';
 import { 
   format, addHours, parseISO, startOfMonth, endOfMonth, 
@@ -28,12 +28,14 @@ interface Props {
   onAddVehicle?: () => void;
   onReschedule?: (job: Job) => void;
   onAddLeave?: () => void;
+  clients?: Client[];
 }
 
 export function WallPlanner({ 
   jobs, workers, vehicles, currentDate: propDate, 
   onDateChange, onJobClick, onStatusChange, onJobDrop, 
-  onCreateJob, onAssignWorkers, onAssignVehicle, onAddVehicle, onReschedule, onAddLeave 
+  onCreateJob, onAssignWorkers, onAssignVehicle, onAddVehicle, onReschedule, onAddLeave,
+  clients = []
 }: Props) {
   const [viewMode, setViewMode] = useState<'month' | 'day'>('day');
   const currentDate = useMemo(() => parseISO(propDate), [propDate]);
@@ -58,13 +60,14 @@ export function WallPlanner({
 
   const filteredJobs = useMemo(() => {
     return jobs.filter(job => {
+      const jobLoc = job?.location || clients?.find(c => c.name === job?.client)?.location || '';
       const matchesSearch = (job?.client?.toLowerCase() || '').includes(activeFilters.search.toLowerCase()) || 
-                           (job?.location?.toLowerCase() || '').includes(activeFilters.search.toLowerCase());
+                           (jobLoc.toLowerCase()).includes(activeFilters.search.toLowerCase());
       const matchesType = activeFilters.type === 'All Types' || job?.type === activeFilters.type.toLowerCase();
       const matchesClient = activeFilters.client === 'All Clients' || job?.client === activeFilters.client;
       return matchesSearch && matchesType && matchesClient;
     });
-  }, [jobs, activeFilters]);
+  }, [jobs, activeFilters, clients]);
 
   // Calendar logic
   const monthDays = useMemo(() => {
@@ -287,7 +290,7 @@ export function WallPlanner({
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
                     <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-                      <MapPin size={12} color="#94A3B8" /> {job.location || <span style={{ color: BLUE }}>+ Add location</span>}
+                      <MapPin size={12} color="#94A3B8" /> {job.location || clients?.find(c => c.name === job.client)?.location || <span style={{ color: BLUE }}>+ Add location</span>}
                     </div>
                     <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                       <Clock size={12} color="#94A3B8" /> {job.estimatedDuration}
@@ -638,7 +641,7 @@ export function WallPlanner({
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#475569', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   <MapPin size={12} color={ORANGE} />
-                                  <span>{job.location || <span style={{ color: BLUE, cursor: 'pointer' }}>+ Add location</span>}</span>
+                                  <span>{job.location || clients?.find(c => c.name === job.client)?.location || <span style={{ color: BLUE, cursor: 'pointer' }}>+ Add location</span>}</span>
                                 </div>
                               </div>
 
@@ -692,7 +695,7 @@ export function WallPlanner({
                 onClick={() => setSelectedJobId(null)}
                 style={{ color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer' }}
               >
-                <MoreHorizontal size={20} />
+                <X size={20} />
               </button>
             </div>
             
@@ -730,7 +733,7 @@ export function WallPlanner({
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <div style={infoItem}><CalendarIcon size={14} color={BLUE} /> {format(parseISO(selectedJob.date), 'EEEE, dd MMM yyyy')}</div>
                         <div style={infoItem}><Clock size={14} color={BLUE} /> {selectedJob.time} ({selectedJob.estimatedDuration} hrs)</div>
-                        <div style={infoItem}><MapPin size={14} color={ORANGE} /> {selectedJob.location || 'Ad hoc'}</div>
+                        <div style={infoItem}><MapPin size={14} color={ORANGE} /> {selectedJob.location || clients?.find(c => c.name === selectedJob.client)?.location || 'Ad hoc'}</div>
                         <div style={infoItem}>
                           <Briefcase size={14} color={BLUE} /> 
                           <span style={{ textTransform: 'capitalize' }}>{selectedJob.type} Cleaning</span>
@@ -807,40 +810,22 @@ export function WallPlanner({
                    )}
 
                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                       {(!selectedJob.assignedWorkers.length || !selectedJob.assignedVehicleId) ? (
-                         <>
-                           {!selectedJob.assignedWorkers.length && (
-                             <button 
-                               onClick={() => onAssignWorkers?.(selectedJob)}
-                               style={{ ...actionBtnDetail, background: BLUE, color: '#fff', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}
-                             >
-                               Assign Workers
-                             </button>
-                           )}
-                           {!selectedJob.assignedVehicleId && (
-                             <button 
-                               onClick={() => onAssignVehicle?.(selectedJob)}
-                               style={{ ...actionBtnDetail, width: '100%', background: ORANGE, color: '#fff', boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)' }}
-                             >
-                               Assign Vehicle
-                             </button>
-                           )}
-                           <button 
-                             onClick={() => onJobClick(selectedJob)}
-                             style={{ ...actionBtnDetail, background: '#fff', color: '#1E293B', border: '1px solid #E2E8F0' }}
-                           >
-                             View Order Details
-                           </button>
-                         </>
-                       ) : (
-                         <button 
-                           onClick={() => onJobClick(selectedJob)}
-                           style={{ ...actionBtnDetail, background: BLUE, color: '#fff', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}
-                         >
-                           View Details & Audit
-                         </button>
-                       )}
-                    </div>
+                        {(!selectedJob.assignedWorkers.length || !selectedJob.assignedVehicleId) ? (
+                          <button 
+                            onClick={() => onJobClick(selectedJob)}
+                            style={{ ...actionBtnDetail, background: '#fff', color: '#1E293B', border: '1px solid #E2E8F0' }}
+                          >
+                            View Order Details
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => onJobClick(selectedJob)}
+                            style={{ ...actionBtnDetail, background: BLUE, color: '#fff', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}
+                          >
+                            View Details & Audit
+                          </button>
+                        )}
+                     </div>
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', paddingTop: 60, color: '#94A3B8' }}>
